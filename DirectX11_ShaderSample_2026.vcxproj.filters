@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>3a00571a-32ff-47e4-a5a8-5c93e170326f</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>3428defd-443d-426b-8653-c8ba69505922</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="DirectXTK_Utilities">
+      <UniqueIdentifier>{8bafb5e4-0b69-48cd-a399-0bdfb9a01723}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImaseLib">
+      <UniqueIdentifier>{0fce3f09-c38e-41aa-bbf3-573228e643d0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="StepTimer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceResources.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK_Utilities\DebugDraw.h">
+      <Filter>DirectXTK_Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK_Utilities\ReadData.h">
+      <Filter>DirectXTK_Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\DebugCamera.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\GridFloor.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="DeviceResources.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXTK_Utilities\DebugDraw.cpp">
+      <Filter>DirectXTK_Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ImaseLib\DebugCamera.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ImaseLib\GridFloor.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="directx.ico">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="settings.manifest">
+      <Filter>Assets</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
