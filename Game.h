@@ -82,14 +82,17 @@ private:
     // 定数バッファの構造体
     struct ConstantBuffer
     {
-        DirectX::XMMATRIX worldViewProjection;  // ワールド行列 × ビュー行列 × プロジェクション行列
+        DirectX::XMMATRIX worldViewProjection;      // ワールド行列 × ビュー行列 × プロジェクション行列
+        DirectX::XMMATRIX worldInverseTranspose;    // ワールド行列の逆転置行列
+        DirectX::XMVECTOR lightDirection;           // ライトの方向
     };
 
     // 頂点データの構造体
-    struct VertexPositionTexture
+    struct VertexPositionNormalColor
     {
         DirectX::XMFLOAT3 position;     // 位置
-        DirectX::XMFLOAT2 texCoord;     // テクスチャ座標
+        DirectX::XMFLOAT3 normal;       // 法線
+        DirectX::XMFLOAT4 color;        // 色
     };
 
     // 定数バッファ（IA）
@@ -124,5 +127,8 @@ private:
 
     // シェダーリソースビュー
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
+
+    // ライトの方向
+    DirectX::SimpleMath::Vector3 m_lightDirection;
 
 };

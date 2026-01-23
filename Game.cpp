@@ -41,6 +41,9 @@ void Game::Initialize(HWND window, int width, int height)
     // デバッグカメラの作成
     m_debugCamera = std::make_unique<Imase::DebugCamera>(width, height);
 
+    // ライトの方向の初期化
+    m_lightDirection = SimpleMath::Vector3(0.0f, 0.0f, -1.0f);
+
 }
 
 #pragma region Frame Update
@@ -94,15 +97,23 @@ void Game::Render()
 
     // -------------------------------------------------------------------------------------- //
 
+    SimpleMath::Matrix world = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+
     // 定数バッファの更新
     {
         ConstantBuffer data = {};
 
         // ワールド行列×ビュー行列×プロジェクション行列を設定する
-        SimpleMath::Matrix m = view * m_proj;
+        SimpleMath::Matrix m = world * view * m_proj;
 
         // シェーダーへ列優先行列を渡すため転置する
         data.worldViewProjection = XMMatrixTranspose(m);
+
+        // ワールド行列の逆転置行列
+        data.worldInverseTranspose = XMMatrixTranspose(XMMatrixInverse(nullptr, world));
+
+        // ライトの方向
+        data.lightDirection = m_lightDirection;
 
         D3D11_MAPPED_SUBRESOURCE mapped;
         context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -115,7 +126,7 @@ void Game::Render()
 
     // 頂点バッファの設定
     ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
-    UINT stride = sizeof(VertexPositionColor);
+    UINT stride = sizeof(VertexPositionNormalColor);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 
@@ -141,13 +152,13 @@ void Game::Render()
     // ピクセルシェーダーの設定
     context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
-    // サンプラーステートの設定
-    ID3D11SamplerState* samplers[] = { m_samplerState.Get() };
-    context->PSSetSamplers(0, 1, samplers);
+    //// サンプラーステートの設定
+    //ID3D11SamplerState* samplers[] = { m_samplerState.Get() };
+    //context->PSSetSamplers(0, 1, samplers);
 
-    // シェーダーリソースの設定
-    ID3D11ShaderResourceView* shaderResources[] = { m_texture.Get() };
-    context->PSSetShaderResources(0, 1, shaderResources);
+    //// シェーダーリソースの設定
+    //ID3D11ShaderResourceView* shaderResources[] = { m_texture.Get() };
+    //context->PSSetShaderResources(0, 1, shaderResources);
 
     // 深度ステンシルバッファの設定
     context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
@@ -273,12 +284,12 @@ void Game::CreateDeviceDependentResources()
     // ----- 頂点バッファ ----- //
     {
         // 頂点データ
-        VertexPositionColor vertices[] =
+        VertexPositionNormalColor vertices[] =
         {
-            { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f } },   // 0
-            { {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f } },   // 1
-            { {  1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } },   // 2
-            { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } },   // 3
+            { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },   // 0
+            { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
+            { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
+            { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 0.0f, 1.0f } },   // 3
         };
 
         // 頂点バッファの作成
@@ -327,8 +338,9 @@ void Game::CreateDeviceDependentResources()
         // 入力レイアウトの作成
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         DX::ThrowIfFailed(
