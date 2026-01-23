@@ -8,10 +8,12 @@ cbuffer Parameters : register(b0)
 struct VSInput
 {
     float3 Position : POSITION;     // 位置
+    float4 Color    : COLOR;        // 色
 };
 
 // 頂点シェーダーの出力用
 struct VSOutput
 {
+    float4 Color    : COLOR;        // 色
     float4 Position : SV_POSITION;  // 位置
 };

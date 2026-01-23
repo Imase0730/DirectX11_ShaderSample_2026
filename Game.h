@@ -86,9 +86,10 @@ private:
     };
 
     // 頂点データの構造体
-    struct VertexPosition
+    struct VertexPositionColor
     {
-        DirectX::XMFLOAT3 position;  // 位置
+        DirectX::XMFLOAT3 position; // 位置
+        DirectX::XMFLOAT4 color;    // 色
     };
 
     // 定数バッファ（IA）

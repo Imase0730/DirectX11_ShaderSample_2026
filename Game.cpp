@@ -115,7 +115,7 @@ void Game::Render()
 
     // 頂点バッファの設定
     ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
-    UINT stride = sizeof(VertexPosition);
+    UINT stride = sizeof(VertexPositionColor);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 
@@ -265,11 +265,11 @@ void Game::CreateDeviceDependentResources()
     // ----- 頂点バッファ ----- //
     {
         // 頂点データ
-        VertexPosition vertices[] =
+        VertexPositionColor vertices[] =
         {
-            { {  0.0f, 1.0f, 0.0f } },   // 0
-            { { -1.0f, 0.0f, 0.0f } },   // 1
-            { {  1.0f, 0.0f, 0.0f } },   // 2
+            { {  0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },   // 0
+            { { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
+            { {  1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
         };
 
         // 頂点バッファの作成
@@ -318,7 +318,8 @@ void Game::CreateDeviceDependentResources()
         // 入力レイアウトの作成
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         DX::ThrowIfFailed(
