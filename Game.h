@@ -77,4 +77,45 @@ private:
     // グリッドの床
     std::unique_ptr<Imase::GridFloor> m_gridFloor;
 
+    // --------------------------------------------------------- //
+
+    // 定数バッファの構造体
+    struct ConstantBuffer
+    {
+        DirectX::XMMATRIX worldViewProjection;  // ワールド行列 × ビュー行列 × プロジェクション行列
+    };
+
+    // 頂点データの構造体
+    struct VertexPosition
+    {
+        DirectX::XMFLOAT3 position;  // 位置
+    };
+
+    // 定数バッファ（IA）
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer;
+
+    // 頂点バッファ（IA）
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
+
+    // インデックスバッファ（IA）
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
+
+    // 入力レイアウト（IA)
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+
+    // 頂点シェーダー（VS）
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
+
+    // ラスタライザーステート（RS)
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
+
+    // ピクセルシェーダー（PS）
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
+
+    // 深度ステンシルステート（OM）
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+    // ブレンドステート（OM）
+    Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
+
 };
