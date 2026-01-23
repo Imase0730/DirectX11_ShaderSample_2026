@@ -268,8 +268,8 @@ void Game::CreateDeviceDependentResources()
         VertexPositionColor vertices[] =
         {
             { {  0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },   // 0
-            { { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
-            { {  1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
+            { {  1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
+            { { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
         };
 
         // 頂点バッファの作成
@@ -344,7 +344,7 @@ void Game::CreateDeviceDependentResources()
         D3D11_RASTERIZER_DESC desc = {};
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_BACK;
-        desc.FrontCounterClockwise = TRUE;
+        desc.FrontCounterClockwise = FALSE;
         desc.DepthBias = 0;
         desc.DepthBiasClamp = 0.0f;
         desc.SlopeScaledDepthBias = 0.0f;
