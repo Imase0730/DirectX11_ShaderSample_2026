@@ -141,6 +141,14 @@ void Game::Render()
     // ピクセルシェーダーの設定
     context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
+    // サンプラーステートの設定
+    ID3D11SamplerState* samplers[] = { m_samplerState.Get() };
+    context->PSSetSamplers(0, 1, samplers);
+
+    // シェーダーリソースの設定
+    ID3D11ShaderResourceView* shaderResources[] = { m_texture.Get() };
+    context->PSSetShaderResources(0, 1, shaderResources);
+
     // 深度ステンシルバッファの設定
     context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
@@ -148,7 +156,7 @@ void Game::Render()
     context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
 
     // 描画
-    context->DrawIndexed(3, 0, 0);
+    context->DrawIndexed(6, 0, 0);
 
     m_deviceResources->PIXEndEvent();
 
@@ -267,9 +275,10 @@ void Game::CreateDeviceDependentResources()
         // 頂点データ
         VertexPositionColor vertices[] =
         {
-            { {  0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },   // 0
-            { {  1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
-            { { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
+            { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f } },   // 0
+            { {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f } },   // 1
+            { {  1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } },   // 2
+            { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } },   // 3
         };
 
         // 頂点バッファの作成
@@ -289,7 +298,7 @@ void Game::CreateDeviceDependentResources()
     // ----- インデックスバッファ ----- //
     {
         // インデックスデータ
-        UINT16 indices[] = { 0, 1, 2 };
+        UINT16 indices[] = { 0, 1, 2, 0, 2, 3 };
 
         // インデックス頂点バッファの作成
         D3D11_BUFFER_DESC desc = {};
@@ -318,8 +327,8 @@ void Game::CreateDeviceDependentResources()
         // 入力レイアウトの作成
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         DX::ThrowIfFailed(
@@ -376,10 +385,41 @@ void Game::CreateDeviceDependentResources()
         D3D11_BLEND_DESC desc = {};
         desc.AlphaToCoverageEnable = FALSE;
         desc.IndependentBlendEnable = FALSE;
-        desc.RenderTarget[0].BlendEnable = FALSE;
+
+        // 乗算済みアルファの設定
+        desc.RenderTarget[0].BlendEnable = TRUE;
         desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+        desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+        desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
         DX::ThrowIfFailed(
             device->CreateBlendState(&desc, m_blendState.ReleaseAndGetAddressOf())
+        );
+    }
+
+    // ----- サンプラーステート ----- //
+    {
+        // サンプラーテートの作成
+        D3D11_SAMPLER_DESC desc = {};
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        desc.MaxLOD = FLT_MAX;
+        DX::ThrowIfFailed(
+            device->CreateSamplerState(&desc, m_samplerState.ReleaseAndGetAddressOf())
+        );
+    }
+
+    // ----- テクスチャの読み込み ----- //
+    {
+        DX::ThrowIfFailed(
+            CreateDDSTextureFromFile(device, L"Resources/Textures/tree.dds", nullptr, m_texture.ReleaseAndGetAddressOf())
         );
     }
 

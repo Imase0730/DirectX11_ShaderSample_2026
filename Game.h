@@ -86,10 +86,10 @@ private:
     };
 
     // 頂点データの構造体
-    struct VertexPositionColor
+    struct VertexPositionTexture
     {
-        DirectX::XMFLOAT3 position; // 位置
-        DirectX::XMFLOAT4 color;    // 色
+        DirectX::XMFLOAT3 position;     // 位置
+        DirectX::XMFLOAT2 texCoord;     // テクスチャ座標
     };
 
     // 定数バッファ（IA）
@@ -118,5 +118,11 @@ private:
 
     // ブレンドステート（OM）
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
+
+    // サンプラーステート（PS）
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
+
+    // シェダーリソースビュー
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
 
 };

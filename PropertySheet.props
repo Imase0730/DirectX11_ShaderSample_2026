@@ -3,6 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <cso>Resources/Shaders/</cso>
+    <dds>Resources/Textures/</dds>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup>
@@ -10,10 +11,16 @@
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(cso)%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <ImageContentTask>
+      <ContentOutput>$(dds)%(Filename).dds</ContentOutput>
+    </ImageContentTask>
   </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="cso">
       <Value>$(cso)</Value>
+    </BuildMacro>
+    <BuildMacro Include="dds">
+      <Value>$(dds)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>
