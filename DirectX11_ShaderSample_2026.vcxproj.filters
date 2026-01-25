@@ -39,6 +39,12 @@
     <ClInclude Include="ImaseLib\GridFloor.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\Effect.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\Model.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -54,6 +60,12 @@
       <Filter>ImaseLib</Filter>
     </ClCompile>
     <ClCompile Include="ImaseLib\GridFloor.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ImaseLib\Effect.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ImaseLib\Model.cpp">
       <Filter>ImaseLib</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,5 +95,10 @@
     <FxCompile Include="Shader\PixelShader.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ImageContentTask Include="Textures\tree.png">
+      <Filter>Assets</Filter>
+    </ImageContentTask>
   </ItemGroup>
 </Project>

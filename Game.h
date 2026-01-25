@@ -9,6 +9,8 @@
 
 #include "ImaseLib/DebugCamera.h"
 #include "ImaseLib/GridFloor.h"
+#include "ImaseLib/Effect.h"
+#include "ImaseLib/Model.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -79,42 +81,8 @@ private:
 
     // --------------------------------------------------------- //
 
-    // 定数バッファの構造体
-    struct ConstantBuffer
-    {
-        DirectX::XMMATRIX worldViewProjection;      // ワールド行列 × ビュー行列 × プロジェクション行列
-        DirectX::XMMATRIX worldInverseTranspose;    // ワールド行列の逆転置行列
-        DirectX::XMVECTOR lightDirection;           // ライトの方向
-    };
-
-    // 頂点データの構造体
-    struct VertexPositionNormalColor
-    {
-        DirectX::XMFLOAT3 position;     // 位置
-        DirectX::XMFLOAT3 normal;       // 法線
-        DirectX::XMFLOAT4 color;        // 色
-    };
-
-    // 定数バッファ（IA）
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer;
-
-    // 頂点バッファ（IA）
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
-
-    // インデックスバッファ（IA）
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
-
-    // 入力レイアウト（IA)
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
-
-    // 頂点シェーダー（VS）
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
-
     // ラスタライザーステート（RS)
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
-
-    // ピクセルシェーダー（PS）
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
 
     // 深度ステンシルステート（OM）
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilState;
@@ -122,13 +90,13 @@ private:
     // ブレンドステート（OM）
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
 
-    // サンプラーステート（PS）
-    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
-
-    // シェダーリソースビュー
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
-
     // ライトの方向
     DirectX::SimpleMath::Vector3 m_lightDirection;
+
+    // エフェクト
+    std::unique_ptr<Imase::Effect> m_effect;
+
+    // モデル
+    std::unique_ptr<Imase::Model> m_model;
 
 };

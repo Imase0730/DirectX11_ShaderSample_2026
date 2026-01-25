@@ -97,68 +97,8 @@ void Game::Render()
 
     // -------------------------------------------------------------------------------------- //
 
-    SimpleMath::Matrix world = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-
-    // 定数バッファの更新
-    {
-        ConstantBuffer data = {};
-
-        // ワールド行列×ビュー行列×プロジェクション行列を設定する
-        SimpleMath::Matrix m = world * view * m_proj;
-
-        // シェーダーへ列優先行列を渡すため転置する
-        data.worldViewProjection = XMMatrixTranspose(m);
-
-        // ワールド行列の逆転置行列
-        data.worldInverseTranspose = XMMatrixTranspose(XMMatrixInverse(nullptr, world));
-
-        // ライトの方向
-        data.lightDirection = m_lightDirection;
-
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-
-        // CPU側のバッファを書き換える
-        memcpy(mapped.pData, &data, sizeof(data));
-
-        context->Unmap(m_constantBuffer.Get(), 0);
-    }
-
-    // 頂点バッファの設定
-    ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
-    UINT stride = sizeof(VertexPositionNormalColor);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
-
-    // インデックスバッファの設定
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-    // 入力レイアウトの設定
-    context->IASetInputLayout(m_inputLayout.Get());
-
-    // トポロジーの設定
-    context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    // 定数バッファの設定
-    ID3D11Buffer* cBuffer[] = { m_constantBuffer.Get() };
-    context->VSSetConstantBuffers(0, 1, cBuffer);
-
-    // 頂点シェーダーの設定
-    context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-
     // ラスタライザーステートの設定
     context->RSSetState(m_rasterizerState.Get());
-
-    // ピクセルシェーダーの設定
-    context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-    //// サンプラーステートの設定
-    //ID3D11SamplerState* samplers[] = { m_samplerState.Get() };
-    //context->PSSetSamplers(0, 1, samplers);
-
-    //// シェーダーリソースの設定
-    //ID3D11ShaderResourceView* shaderResources[] = { m_texture.Get() };
-    //context->PSSetShaderResources(0, 1, shaderResources);
 
     // 深度ステンシルバッファの設定
     context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
@@ -166,8 +106,21 @@ void Game::Render()
     // ブレンドステートの設定
     context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
 
-    // 描画
-    context->DrawIndexed(6, 0, 0);
+    SimpleMath::Matrix world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+
+    //world = SimpleMath::Matrix::Identity;
+
+    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3::Forward, rotY);
+
+    m_model->UpdateEffect([&](Imase::Effect* effect)
+        {
+            effect->SetLightDirection(m_lightDirection);
+        }
+    );
+
+    // モデルの描画
+    m_model->Draw(context, world, view, m_proj);
 
     m_deviceResources->PIXEndEvent();
 
@@ -268,97 +221,6 @@ void Game::CreateDeviceDependentResources()
 
     // -------------------------------------------------------------------------------------- //
 
-    // ----- 定数バッファ ----- //
-    {
-        // 定数バッファの作成
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = sizeof(ConstantBuffer);
-        desc.Usage = D3D11_USAGE_DYNAMIC;
-        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        DX::ThrowIfFailed(
-            device->CreateBuffer(&desc, nullptr, m_constantBuffer.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- 頂点バッファ ----- //
-    {
-        // 頂点データ
-        VertexPositionNormalColor vertices[] =
-        {
-            { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },   // 0
-            { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },   // 1
-            { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },   // 2
-            { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 0.0f, 1.0f } },   // 3
-        };
-
-        // 頂点バッファの作成
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = sizeof(vertices);
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-        D3D11_SUBRESOURCE_DATA data = {};
-        data.pSysMem = vertices;
-
-        DX::ThrowIfFailed(
-            device->CreateBuffer(&desc, &data, m_vertexBuffer.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- インデックスバッファ ----- //
-    {
-        // インデックスデータ
-        UINT16 indices[] = { 0, 1, 2, 0, 2, 3 };
-
-        // インデックス頂点バッファの作成
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = sizeof(indices);
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-        D3D11_SUBRESOURCE_DATA data = {};
-        data.pSysMem = indices;
-
-        DX::ThrowIfFailed(
-            device->CreateBuffer(&desc, &data, m_indexBuffer.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- 頂点シェーダー ＆ 入力レイアウト ----- //
-    {
-        // 頂点シェーダーの読み込み
-        std::vector<uint8_t> data = DX::ReadData(L"Resources/Shaders/VertexShader.cso");
-
-        // 頂点シェーダーの作成
-        DX::ThrowIfFailed(
-            device->CreateVertexShader(data.data(), data.size(), nullptr, m_vertexShader.ReleaseAndGetAddressOf())
-        );
-
-        // 入力レイアウトの作成
-        D3D11_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-
-        DX::ThrowIfFailed(
-            device->CreateInputLayout(layout, ARRAYSIZE(layout), data.data(), data.size(), m_inputLayout.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- ピクセルシェーダー ----- //
-    {
-        // ピクセルシェーダーの読み込み
-        std::vector<uint8_t> data = DX::ReadData(L"Resources/Shaders/PixelShader.cso");
-
-        // ピクセルシェーダーの作成
-        DX::ThrowIfFailed(
-            device->CreatePixelShader(data.data(), data.size(), nullptr, m_pixelShader.ReleaseAndGetAddressOf())
-        );
-    }
-
     // ----- ラスタライザーステート ----- //
     {
         // ラスタライザーステートの作成
@@ -413,28 +275,13 @@ void Game::CreateDeviceDependentResources()
         );
     }
 
-    // ----- サンプラーステート ----- //
-    {
-        // サンプラーテートの作成
-        D3D11_SAMPLER_DESC desc = {};
-        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-        desc.MaxLOD = FLT_MAX;
-        DX::ThrowIfFailed(
-            device->CreateSamplerState(&desc, m_samplerState.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- テクスチャの読み込み ----- //
-    {
-        DX::ThrowIfFailed(
-            CreateDDSTextureFromFile(device, L"Resources/Textures/tree.dds", nullptr, m_texture.ReleaseAndGetAddressOf())
-        );
-    }
-
+    // モデル読み込み
+    std::vector<uint8_t> data = DX::ReadData(L"Resources/Models/Monkey.mdl");
+    // エフェクトの作成
+    m_effect = std::make_unique<Imase::Effect>(device);
+    m_effect->SetDirectory(L"Resources/Models");
+    // モデルの作成
+    m_model = Imase::Model::CreateModel(device, data.data(), m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

@@ -185,7 +185,9 @@
     <ClInclude Include="DirectXTK_Utilities\ReadData.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="ImaseLib\DebugCamera.h" />
+    <ClInclude Include="ImaseLib\Effect.h" />
     <ClInclude Include="ImaseLib\GridFloor.h" />
+    <ClInclude Include="ImaseLib\Model.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="StepTimer.h" />
   </ItemGroup>
@@ -194,7 +196,9 @@
     <ClCompile Include="DirectXTK_Utilities\DebugDraw.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="ImaseLib\DebugCamera.cpp" />
+    <ClCompile Include="ImaseLib\Effect.cpp" />
     <ClCompile Include="ImaseLib\GridFloor.cpp" />
+    <ClCompile Include="ImaseLib\Model.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
