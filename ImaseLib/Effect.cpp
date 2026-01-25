@@ -182,7 +182,7 @@ void Imase::Effect::SetTexture(ID3D11Device* device, const wchar_t* fname)
 
     // テクスチャ読み込み
     DX::ThrowIfFailed(
-        CreateWICTextureFromFile(device, fullPath.c_str(), nullptr, texture.GetAddressOf())
+        CreateDDSTextureFromFile(device, fullPath.c_str(), nullptr, texture.GetAddressOf())
     );
     m_textures.push_back(std::move(texture));
 }

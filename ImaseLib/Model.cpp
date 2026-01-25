@@ -34,6 +34,25 @@ static std::wstring StringToWString(const std::string& s)
 	return result;
 }
 
+// 拡張子をddsに変更する関数
+static std::string ChangeExtPngToDds(const std::string& filename)
+{
+	std::string result = filename;
+
+	// 最後の '.' を探す
+	size_t pos = result.find_last_of('.');
+	if (pos == std::string::npos)
+	{
+		// 拡張子なし → .dds を追加
+		return result + ".dds";
+	}
+
+	// 拡張子を置き換え
+	result.replace(pos, std::string::npos, ".dds");
+
+	return result;
+}
+
 // コンストラクタ
 Imase::Model::Model(Imase::Effect* pEffect)
 	: m_pEffect(pEffect)
@@ -69,9 +88,11 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 		std::string str;
 		str.assign(texName, *nName);
 
+		// 拡張子をddsに変更
+		str = ChangeExtPngToDds(str);
+
 		// UTF-8 → UTF-16 変換
 		std::wstring name = StringToWString(str);
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> texture;
 
 		// テクスチャを登録
 		pEffect->SetTexture(device, name.c_str());

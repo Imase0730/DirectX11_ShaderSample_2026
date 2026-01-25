@@ -276,7 +276,7 @@ void Game::CreateDeviceDependentResources()
     }
 
     // モデル読み込み
-    std::vector<uint8_t> data = DX::ReadData(L"Resources/Models/Monkey.mdl");
+    std::vector<uint8_t> data = DX::ReadData(L"Resources/Models/Dice.mdl");
     // エフェクトの作成
     m_effect = std::make_unique<Imase::Effect>(device);
     m_effect->SetDirectory(L"Resources/Models");
