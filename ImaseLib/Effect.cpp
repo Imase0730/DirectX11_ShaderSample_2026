@@ -79,11 +79,10 @@ Imase::Effect::Effect(ID3D11Device* device)
 // エフェクトを適応する関数
 void Imase::Effect::Apply(ID3D11DeviceContext* context)
 {
-    // テクスチャの使用有無
+    // テクスチャの使用有無（0 : 未使用）
     auto UseTexture = [&]()
     {
-        if (m_pMaterial->textureIndex < 0) return 0;
-        return 1;
+        return (m_pMaterial->textureIndex < 0) ? 0 : 1;
     };
 
     // 定数バッファの更新

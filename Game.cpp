@@ -119,6 +119,8 @@ void Game::Render()
         }
     );
 
+    m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
+
     // ƒ‚ƒfƒ‹‚Ì•`‰æ
     m_model->Draw(context, world, view, m_proj);
 

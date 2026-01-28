@@ -98,6 +98,28 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 		pEffect->SetTexture(device, name.c_str());
 	}
 
+	// マテリアル名の数
+	const uint32_t* materialNam_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
+	usedSize += sizeof(uint32_t);
+	model->m_materialNames.resize(*materialNam_cnt);
+
+	for (uint32_t i = 0; i < (*materialNam_cnt); i++)
+	{
+		const uint32_t* len = reinterpret_cast<const uint32_t*>(meshData + usedSize);
+		usedSize += sizeof(uint32_t);
+		const char* materialName = reinterpret_cast<const char*>(meshData + usedSize);
+		usedSize += (*len);
+		std::string str;
+		str.assign(materialName, *len);
+		model->m_materialNames[i]= StringToWString(str);
+	}
+
+	// マテリアル名→インデックスの検索用テーブルを作成
+	for (uint32_t i = 0; i < model->m_materialNames.size(); i++)
+	{
+		model->m_materialIndexMap[model->m_materialNames[i]] = i;
+	}
+
 	// マテリアル数
 	const uint32_t* material_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
 	usedSize += sizeof(uint32_t);
@@ -207,5 +229,13 @@ void Imase::Model::Draw
 void Imase::Model::UpdateEffect(std::function<void(Imase::Effect*)> setEffect)
 {
 	if (setEffect) setEffect(m_pEffect);
+}
+
+// 指定マテリアルのディフューズ色を設定する関数
+void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMFLOAT3& color)
+{
+	auto it = m_materialIndexMap.find(name);
+	if (it == m_materialIndexMap.end()) return;
+	m_materials[it->second].diffuseColor = color;
 }
 

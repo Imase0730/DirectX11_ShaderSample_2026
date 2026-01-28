@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Effect.h"
+#include <unordered_map>
 
 namespace Imase
 {
@@ -17,6 +18,7 @@ namespace Imase
 	struct Mesh
 	{
 		uint32_t materialIndex;     // マテリアルインデックス
+		uint32_t materialNameIndex; // マテリアル名インデックス
 		uint32_t startIndex;        // スタートインデックス  
 		uint32_t primCount;         // プリミティブ数
 	};
@@ -32,6 +34,9 @@ namespace Imase
 		// マテリアル
 		std::vector<Imase::Material> m_materials;
 
+		// マテリアル名
+		std::vector<std::wstring> m_materialNames;
+
 		// メッシュ情報
 		std::vector<Mesh> m_meshes;
 
@@ -40,6 +45,9 @@ namespace Imase
 
 		// インデックスバッファ
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
+
+		// 名前→インデックス
+		std::unordered_map<std::wstring, uint32_t> m_materialIndexMap;
 
 	public:
 
@@ -55,5 +63,7 @@ namespace Imase
 		// エフェクトの更新
 		void UpdateEffect(std::function<void (Imase::Effect*)> setEffect);
 
+		// 指定マテリアルのディフューズ色を設定する関数
+		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMFLOAT3& color);
 	};
 }
