@@ -42,7 +42,8 @@ void Game::Initialize(HWND window, int width, int height)
     m_debugCamera = std::make_unique<Imase::DebugCamera>(width, height);
 
     // ライトの方向の初期化
-    m_lightDirection = SimpleMath::Vector3(0.0f, 0.0f, -1.0f);
+    m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, -1.0f);
+    m_lightDirection.Normalize();
 
 }
 
@@ -106,12 +107,18 @@ void Game::Render()
     // ブレンドステートの設定
     context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
 
-    SimpleMath::Matrix world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    SimpleMath::Matrix world;
+
+    //world = SimpleMath::Matrix::CreateTranslation(0, -1, 0)
+    //    * SimpleMath::Matrix::CreateRotationX(XMConvertToRadians(90))
+    //    * SimpleMath::Matrix::CreateTranslation(0, 1, 0);
+    //world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
 
     //world = SimpleMath::Matrix::Identity;
 
-    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3::Forward, rotY);
+    //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
+    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
 
     m_model->UpdateEffect([&](Imase::Effect* effect)
         {
@@ -119,7 +126,7 @@ void Game::Render()
         }
     );
 
-    m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
+    //m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
 
     // モデルの描画
     m_model->Draw(context, world, view, m_proj);

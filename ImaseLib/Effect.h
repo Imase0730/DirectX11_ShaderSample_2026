@@ -10,7 +10,8 @@ namespace Imase
         DirectX::XMFLOAT3 specularColor;    // スペキュラー色
         float specularPower;                // スペキュラーパワー
         DirectX::XMFLOAT3 emissiveColor;    // エミッシブ色
-        int32_t textureIndex;               // テクスチャインデックス
+        int32_t textureIndex_BaseColor;     // テクスチャインデックス（ベースカラー）
+        int32_t textureIndex_NormalMap;     // テクスチャインデックス（法線マップ）
     };
 
 	class Effect

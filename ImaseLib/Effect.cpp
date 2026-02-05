@@ -82,7 +82,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     // テクスチャの使用有無（0 : 未使用）
     auto UseTexture = [&]()
     {
-        return (m_pMaterial->textureIndex < 0) ? 0 : 1;
+        return (m_pMaterial->textureIndex_BaseColor < 0) ? 0 : 1;
     };
 
     // 定数バッファの更新
@@ -149,8 +149,13 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     if (UseTexture())
     {
         // シェーダーリソースの設定
-        ID3D11ShaderResourceView* shaderResources[] = { m_textures[m_pMaterial->textureIndex].Get()};
+        ID3D11ShaderResourceView* shaderResources[] = { m_textures[m_pMaterial->textureIndex_BaseColor].Get()};
         context->PSSetShaderResources(0, 1, shaderResources);
+    }
+    {
+        // シェーダーリソースの設定
+        ID3D11ShaderResourceView* shaderResources[] = { m_textures[m_pMaterial->textureIndex_NormalMap].Get() };
+        context->PSSetShaderResources(1, 1, shaderResources);
     }
 }
 

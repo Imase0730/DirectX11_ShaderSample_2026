@@ -1,32 +1,18 @@
 #include "Header.hlsli"
 
-struct ColorPair
+// ワールド空間 → タンジェント空間
+float3x3 WorldToTangentMatrix(
+   float3 tangent,
+   float3 binormal,
+   float3 normal)
 {
-    float3 Diffuse;
-    float3 Specular;
-};
-
-// ライトの計算
-ColorPair ComputeLight(float3 worldNormal, float3 eyeVector)
-{
-    ColorPair result;
-    
-    float3 N = normalize(worldNormal);      // 法線
-    float3 L = normalize(-LightDirection);  // 光の来る方向
-    float3 V = normalize(eyeVector);        // 視線方向
-
-    // ディフューズ
-    float NdotL = saturate(dot(N, L));
-    result.Diffuse = DiffuseColor * NdotL;
-
-    // スペキュラー
-    float3 H = L + V;
-    H = (dot(H, H) > 0.0001f) ? normalize(H) : N;   // ハーフベクトルのゼロ割り防止
-    float NdotH = saturate(dot(N, H));
-    float spec = pow(NdotH, SpecularPower);
-    result.Specular = spec * SpecularColor * NdotL;
-  
-    return result;
+    float3x3 mat =
+    {
+        tangent,
+        binormal,
+        normal,
+    };
+    return transpose(mat); // 転置
 }
 
 VSOutput main(VSInput vin)
@@ -36,25 +22,26 @@ VSOutput main(VSInput vin)
     // 座標変換
     vout.Position = mul(float4(vin.Position, 1.0f), WorldViewProj);
 
-    // 視線ベクトル
-    float4 pos_ws = mul(float4(vin.Position, 1.0f), World);
-    float3 eyeVector = EyePosition - pos_ws.xyz;
+    // ワールド座標（ライト計算用）
+    float3 pos_ws = mul(float4(vin.Position, 1.0f), World);
+    vout.WorldPos = pos_ws;
 
-    // ワールド空間の法線ベクトル
-    float3 worldNormal = normalize(mul(vin.Normal, (float3x3)WorldInverseTranspose));
+    float3 normal = normalize(mul(vin.Normal, (float3x3)WorldInverseTranspose));
+    float3 tangent = normalize(mul(vin.Tangent.xyz, (float3x3)WorldInverseTranspose));
+    float3 binormal = cross(normal, tangent) * vin.Tangent.w;
+
+    // ワールド空間→タンジェント空間
+    float3x3 TBN = WorldToTangentMatrix(tangent, binormal, normal);
     
-    // ライトの計算
-    ColorPair light = ComputeLight(worldNormal, eyeVector);
+    // ライト方向のベクトルをタンジェント空間へ
+    vout.LightTangentDirect = normalize(mul(-LightDirection, TBN));
 
-    // ディフューズ色
-    vout.Diffuse = float4(EmissiveColor + light.Diffuse + light.Specular, 1.0f);
-   
+    // 視線方向のベクトルをタンジェント空間へ
+    vout.ViewTangent = normalize(mul(EyePosition - pos_ws, TBN));
+
     // テクスチャ座標
-    vout.TexCoord = vin.TextCoord;
-    
-    // 接線ベクトル
-    vout.Tangent = vin.Tangent;
-    
+    vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y);
+
     return vout;
 }
 
