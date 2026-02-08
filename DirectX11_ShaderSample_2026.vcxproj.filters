@@ -45,6 +45,12 @@
     <ClInclude Include="ImaseLib\Model.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\BasicShader.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\IShader.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -68,6 +74,9 @@
     <ClCompile Include="ImaseLib\Model.cpp">
       <Filter>ImaseLib</Filter>
     </ClCompile>
+    <ClCompile Include="ImaseLib\BasicShader.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -85,6 +94,9 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Shader\Header.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\Common.hlsli">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

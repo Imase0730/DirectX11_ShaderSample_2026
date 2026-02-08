@@ -1,3 +1,4 @@
+#include "Common.hlsli"
 #include "Header.hlsli"
 
 Texture2D Texture : register(t0);

@@ -5,61 +5,9 @@ using namespace DirectX;
 using namespace Imase;
 
 // コンストラクタ
-Imase::Effect::Effect(ID3D11Device* device)
-    : m_world{}
-    , m_view{}
-    , m_projection{}
-    , m_lightDirection{ 0.0f, 0.0f, -1.0f }
-    , m_pMaterial{ nullptr }
+Imase::Effect::Effect(ID3D11Device* device, Imase::IShader* pShader)
+    : m_pShader{ pShader }
 {
-    // ----- 定数バッファ ----- //
-    {
-        // 定数バッファの作成
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = sizeof(ConstantBufferData);
-        desc.Usage = D3D11_USAGE_DYNAMIC;
-        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        DX::ThrowIfFailed(
-            device->CreateBuffer(&desc, nullptr, m_constantBuffer.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- 頂点シェーダー ＆ 入力レイアウト ----- //
-    {
-        // 頂点シェーダーの読み込み
-        std::vector<uint8_t> data = DX::ReadData(L"Resources/Shaders/VertexShader.cso");
-
-        // 頂点シェーダーの作成
-        DX::ThrowIfFailed(
-            device->CreateVertexShader(data.data(), data.size(), nullptr, m_vertexShader.ReleaseAndGetAddressOf())
-        );
-
-        // 入力レイアウトの作成
-        D3D11_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "Position", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-
-        DX::ThrowIfFailed(
-            device->CreateInputLayout(layout, ARRAYSIZE(layout), data.data(), data.size(), m_inputLayout.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- ピクセルシェーダー ----- //
-    {
-        // ピクセルシェーダーの読み込み
-        std::vector<uint8_t> data = DX::ReadData(L"Resources/Shaders/PixelShader.cso");
-
-        // ピクセルシェーダーの作成
-        DX::ThrowIfFailed(
-            device->CreatePixelShader(data.data(), data.size(), nullptr, m_pixelShader.ReleaseAndGetAddressOf())
-        );
-    }
-
     // ----- サンプラーステート ----- //
     {
         // サンプラーテートの作成
@@ -74,120 +22,92 @@ Imase::Effect::Effect(ID3D11Device* device)
             device->CreateSamplerState(&desc, m_samplerState.ReleaseAndGetAddressOf())
         );
     }
+
+    // 定数バッファ作成
+    CreatePerFrameCB(device);
+    CreatePerObjectCB(device);
+}
+
+// フレーム開始時の処理
+void Imase::Effect::BeginFrame(ID3D11DeviceContext* context, Imase::PerFrameCB& cb)
+{
+    // 定数バッファ更新（フレーム開始時）
+    UpdatePerFrameCB(context, cb);
 }
 
 // エフェクトを適応する関数
-void Imase::Effect::Apply(ID3D11DeviceContext* context)
+void Imase::Effect::Apply(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb, const Material* material)
 {
-    // テクスチャの使用有無（0 : 未使用）
-    auto UseTexture = [&]()
-    {
-        return (m_pMaterial->textureIndex_BaseColor < 0) ? 0 : 1;
-    };
+    // 定数バッファを更新（オブジェクト毎）
+    UpdatePerObjectCB(context, cb);
 
-    // 定数バッファの更新
-    {
-        ConstantBufferData data = {};
+    // シェーダーをバインド
+    m_pShader->Bind(context);
 
-        // nullチェック
-        assert(m_pMaterial);
-
-        // マテリアル
-        data.diffuseColor = XMLoadFloat3(&m_pMaterial->diffuseColor);   // ディフューズ色
-        data.emissiveColor = XMLoadFloat3(&m_pMaterial->emissiveColor); // エミッシブ色
-        data.specularColorAndPower = XMLoadFloat3(&m_pMaterial->specularColor); // スペキュラー色
-        data.specularColorAndPower = XMVectorSetW(data.specularColorAndPower, m_pMaterial->specularPower);  // スペキュラーパワー
-
-        // ワールド行列
-        data.world = XMMatrixTranspose(m_world);
-
-        // ワールド行列×ビュー行列×プロジェクション行列
-        XMMATRIX wvp = m_world * m_view * m_projection;
-        data.worldViewProjection = XMMatrixTranspose(wvp);
-
-        // ワールド行列の逆転置行列
-        data.worldInverseTranspose = XMMatrixInverse(nullptr, m_world);
-
-        // ライトの方向ベクトル
-        data.lightDirection = XMLoadFloat3(&m_lightDirection);
-
-        // カメラの位置をビュー行列から取得する
-        XMMATRIX viewInverse = XMMatrixInverse(nullptr, m_view);
-        XMStoreFloat3(&data.eyePosition, viewInverse.r[3]);
-
-        // テクスチャの使用有無
-        data.useTexture = UseTexture();
-
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-
-        // CPU側のバッファを書き換える
-        memcpy(mapped.pData, &data, sizeof(data));
-
-        context->Unmap(m_constantBuffer.Get(), 0);
-    }
-
-    // 定数バッファの設定
-    ID3D11Buffer* cBuffers[] = { m_constantBuffer.Get() };
-    context->VSSetConstantBuffers(0, 1, cBuffers);
-    context->PSSetConstantBuffers(0, 1, cBuffers);
-
-    // 頂点シェーダーの設定
-    context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-
-    // ピクセルシェーダーの設定
-    context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-    // 入力レイアウトの設定
-    context->IASetInputLayout(m_inputLayout.Get());
+    // 定数バッファを設定
+    ID3D11Buffer* cbBuffers[] = { m_perFrameCB.Get(), m_perObjectCB.Get()};
+    context->VSSetConstantBuffers(0, 2, cbBuffers);
+    context->PSSetConstantBuffers(0, 2, cbBuffers);
 
     // サンプラーステートの設定
-    ID3D11SamplerState* samplers[] = { m_samplerState.Get() };
-    context->PSSetSamplers(0, 1, samplers);
+    context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
-    // テクスチャの使用
-    if (UseTexture())
+    // ベースカラー
+    if (material->pBaseColorSRV)
     {
-        // シェーダーリソースの設定
-        ID3D11ShaderResourceView* shaderResources[] = { m_textures[m_pMaterial->textureIndex_BaseColor].Get()};
-        context->PSSetShaderResources(0, 1, shaderResources);
+        context->PSSetShaderResources(0, 1, &material->pBaseColorSRV);
     }
+
+    // 法線マップ
+    if (material->pNormalMapSRV)
     {
-        // シェーダーリソースの設定
-        ID3D11ShaderResourceView* shaderResources[] = { m_textures[m_pMaterial->textureIndex_NormalMap].Get() };
-        context->PSSetShaderResources(1, 1, shaderResources);
+        context->PSSetShaderResources(1, 1, &material->pNormalMapSRV);
     }
 }
 
-// フルパス作成関数
-static std::wstring MakeFullPath(const std::wstring& path, const std::wstring& fname)
+// 定数バッファの作成関数（フレーム更新時）
+void Imase::Effect::CreatePerFrameCB(ID3D11Device* device)
 {
-    if (path.empty()) return fname;
-
-    wchar_t sep = L'\\'; // Windows前提
-
-    if (path.back() == L'\\' || path.back() == L'/')
-    {
-        return path + fname;
-    }
-    else
-    {
-        return path + sep + fname;
-    }
-}
-
-// テクスチャハンドル登録関数
-void Imase::Effect::SetTexture(ID3D11Device* device, const wchar_t* fname)
-{
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> texture;
-
-    // フルパス名を作成
-    std::wstring fullPath = MakeFullPath(m_path, fname);
-
-    // テクスチャ読み込み
+    // 定数バッファの作成
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = sizeof(Imase::PerFrameCB);
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     DX::ThrowIfFailed(
-        CreateDDSTextureFromFile(device, fullPath.c_str(), nullptr, texture.GetAddressOf())
+        device->CreateBuffer(&desc, nullptr, m_perFrameCB.ReleaseAndGetAddressOf())
     );
-    m_textures.push_back(std::move(texture));
+}
+
+// 定数バッファの作成関数（モデル毎に更新）
+void Imase::Effect::CreatePerObjectCB(ID3D11Device* device)
+{
+    // 定数バッファの作成
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = sizeof(Imase::PerObjectCB);
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    DX::ThrowIfFailed(
+        device->CreateBuffer(&desc, nullptr, m_perObjectCB.ReleaseAndGetAddressOf())
+    );
+}
+
+// 定数バッファ更新関数（フレーム更新時）
+void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context, const Imase::PerFrameCB& cb)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    context->Map(m_perFrameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &cb, sizeof(cb));
+    context->Unmap(m_perFrameCB.Get(), 0);
+}
+
+// 定数バッファ更新関数（モデル毎に更新）
+void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    context->Map(m_perObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, &cb, sizeof(cb));
+    context->Unmap(m_perObjectCB.Get(), 0);
 }
 

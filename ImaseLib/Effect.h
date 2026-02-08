@@ -1,7 +1,42 @@
 #pragma once
 
+#include "IShader.h"
+
 namespace Imase
 {
+    // フレームの最初に更新
+    struct PerFrameCB
+    {
+        DirectX::XMMATRIX View;             // ビュー行列
+        DirectX::XMMATRIX Projection;       // プロジェクション行列
+
+        DirectX::XMFLOAT3 LightDirection;   // 平行光源方向（正規化）
+        float _pad_LightDir;
+
+        DirectX::XMFLOAT3 CameraPosition;   // 視点位置
+        float _pad_CameraPos;
+    };
+
+    // オブジェクト毎に更新
+    struct PerObjectCB
+    {
+        DirectX::XMFLOAT3 DiffuseColor;     // ディフューズ色
+        float _pad_Diffuse;
+
+        DirectX::XMFLOAT3 EmissiveColor;    // エミッシブ色
+        float _pad_Emissive;
+
+        DirectX::XMFLOAT3 SpecularColor;    // スペキュラー色
+        float SpecularPower;                // スペキュラーパワー
+
+        uint32_t UseTexture;                // 0 or 1
+        uint32_t UseNormalMap;              // 0 or 1
+        DirectX::XMFLOAT2 _pad_Flags;
+
+        DirectX::XMMATRIX World;                    // ワールド行列
+        DirectX::XMMATRIX WorldInverseTranspose;    // ワールド行列の逆転置行列
+    };
+
     // マテリアル
     struct Material
     {
@@ -10,95 +45,51 @@ namespace Imase
         DirectX::XMFLOAT3 specularColor;    // スペキュラー色
         float specularPower;                // スペキュラーパワー
         DirectX::XMFLOAT3 emissiveColor;    // エミッシブ色
-        int32_t textureIndex_BaseColor;     // テクスチャインデックス（ベースカラー）
-        int32_t textureIndex_NormalMap;     // テクスチャインデックス（法線マップ）
+
+        ID3D11ShaderResourceView* pBaseColorSRV = nullptr;   // ベースカラー
+        ID3D11ShaderResourceView* pNormalMapSRV = nullptr;   // 法線マップ
     };
 
 	class Effect
 	{
     private:
 
-        // 定数バッファのデータ
-        struct ConstantBufferData
-        {
-            DirectX::XMVECTOR diffuseColor;             // ディフューズ色
-            DirectX::XMVECTOR emissiveColor;            // エミッシブ色
-            DirectX::XMVECTOR specularColorAndPower;    // スペキュラーとスペキュラーパワー
+        // シェーダーへのポインタ
+        Imase::IShader* m_pShader;
 
-            DirectX::XMMATRIX world;                    // ワールド行列
-            DirectX::XMMATRIX worldViewProjection;      // ワールド行列×ビュー行列×プロジェクション行列
-            DirectX::XMMATRIX worldInverseTranspose;    // ワールド行列の逆転置行列
+        // 定数バッファ（フレームの最初に更新用）
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_perFrameCB;
 
-            DirectX::XMVECTOR lightDirection;           // ライトの方向ベクトル
-            DirectX::XMFLOAT3 eyePosition;              // カメラの位置
-
-            uint32_t useTexture;                        // 0 = 使わない, 1 = 使う
-        };
-
-        // 定数バッファ
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer;
-
-        // 入力レイアウト
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
-
-        // 頂点シェーダー
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
-
-        // ピクセルシェーダー
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
+        // 定数バッファ（オブジェクト毎に更新用）
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_perObjectCB;
 
         // サンプラーステート
         Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
 
-        // ワールド行列
-        DirectX::XMMATRIX m_world;
-
-        // ビュー行列
-        DirectX::XMMATRIX m_view;
-
-        // プロジェクション行列
-        DirectX::XMMATRIX m_projection;
-
-        // ライトの方向
-        DirectX::XMFLOAT3 m_lightDirection;
-
-        // マテリアルへのポインタ
-        const Imase::Material* m_pMaterial;
-
-        // テクスチャハンドルの配列
-        std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
-
-        // テクスチャのパス
-        std::wstring m_path;
-
     public:
 
         // コンストラクタ
-        Effect(ID3D11Device* device);
+        Effect(ID3D11Device* device, Imase::IShader* pShader);
+
+        // フレーム最初に１回呼び出す関数
+        void BeginFrame(ID3D11DeviceContext* context, Imase::PerFrameCB& cb);
 
         // エフェクトを適応する関数
-        void Apply(ID3D11DeviceContext* context);
+        void Apply(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb, const Material* material);
 
-        // ワールド行列を設定する関数
-        void SetWorld(DirectX::XMMATRIX m) { m_world = m; }
+    private:
+    
+        // 定数バッファ作成関数（フレーム更新時）
+        void CreatePerFrameCB(ID3D11Device* device);
 
-        // ビュー行列を設定する関数
-        void SetView(DirectX::XMMATRIX m) { m_view = m; }
+        // 定数バッファ更新関数（フレーム更新時）
+        void UpdatePerFrameCB(ID3D11DeviceContext* context, const Imase::PerFrameCB& cb);
 
-        // プロジェクション行列を設定する関数
-        void SetProjection(DirectX::XMMATRIX m) { m_projection = m; }
+        // 定数バッファ作成関数（オブジェクト毎）
+        void CreatePerObjectCB(ID3D11Device* device);
 
-        // ライトの方向を設定する関数
-        void SetLightDirection(DirectX::XMFLOAT3 v) { m_lightDirection = v; }
-
-        // マテリアルを設定する関数
-        void SetMaterial(const Imase::Material* pMaterial) { m_pMaterial = pMaterial; }
- 
-        // テクスチャ登録関数
-        void SetTexture(ID3D11Device* device, const wchar_t* fname);
-
-        // テクスチャのパスを設定する関数
-        void SetDirectory(std::wstring path) { m_path = path; }
+        // 定数バッファ更新関数（オブジェクト毎）
+        void UpdatePerObjectCB(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb);
 
     };
 }

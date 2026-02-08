@@ -112,24 +112,39 @@ void Game::Render()
     //world = SimpleMath::Matrix::CreateTranslation(0, -1, 0)
     //    * SimpleMath::Matrix::CreateRotationX(XMConvertToRadians(90))
     //    * SimpleMath::Matrix::CreateTranslation(0, 1, 0);
-    //world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
 
     //world = SimpleMath::Matrix::Identity;
 
     //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
-    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
+    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
 
-    m_model->UpdateEffect([&](Imase::Effect* effect)
-        {
-            effect->SetLightDirection(m_lightDirection);
-        }
-    );
+    //m_model->UpdateEffect([&](Imase::Effect* effect)
+    //    {
+    //        effect->SetLightDirection(m_lightDirection);
+    //    }
+    //);
 
     //m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
 
+    // ------------------------------------------------------- //
+
+    // フレームの最初に設定する定数バッファ
+    Imase::PerFrameCB frameCB = {};
+    frameCB.View = XMMatrixTranspose(m_debugCamera->GetCameraMatrix());
+    frameCB.Projection = XMMatrixTranspose(m_proj);
+    frameCB.LightDirection = m_lightDirection;
+    frameCB.CameraPosition = m_debugCamera->GetEyePosition();
+
+    m_effect->BeginFrame(context, frameCB);
+
+    // ------------------------------------------------------- //
+
     // モデルの描画
-    m_model->Draw(context, world, view, m_proj);
+    m_model->Draw(context, world);
+
+    // ------------------------------------------------------- //
 
     m_deviceResources->PIXEndEvent();
 
@@ -284,13 +299,14 @@ void Game::CreateDeviceDependentResources()
         );
     }
 
-    // モデル読み込み
-    std::vector<uint8_t> data = DX::ReadData(L"Resources/Models/Dice.mdl");
+    // シェーダーの作成
+    m_shader = std::make_unique<Imase::BasicShader>(device);
+
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device);
-    m_effect->SetDirectory(L"Resources/Models");
+    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
+
     // モデルの作成
-    m_model = Imase::Model::CreateModel(device, data.data(), m_effect.get());
+    m_model = Imase::Model::CreateModel(device, L"Resources/Models/Dice.mdl", m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

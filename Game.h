@@ -9,6 +9,7 @@
 
 #include "ImaseLib/DebugCamera.h"
 #include "ImaseLib/GridFloor.h"
+#include "ImaseLib/BasicShader.h"
 #include "ImaseLib/Effect.h"
 #include "ImaseLib/Model.h"
 
@@ -92,6 +93,9 @@ private:
 
     // ライトの方向
     DirectX::SimpleMath::Vector3 m_lightDirection;
+
+    // シェーダー
+    std::unique_ptr<Imase::BasicShader> m_shader;
 
     // エフェクト
     std::unique_ptr<Imase::Effect> m_effect;

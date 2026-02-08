@@ -1,3 +1,4 @@
+#include "Common.hlsli"
 #include "Header.hlsli"
 
 // ワールド空間 → タンジェント空間
@@ -20,7 +21,9 @@ VSOutput main(VSInput vin)
     VSOutput vout;
 
     // 座標変換
-    vout.Position = mul(float4(vin.Position, 1.0f), WorldViewProj);
+    float4x4 wv = mul(World, View);
+    float4x4 wvp = mul(wv, Projection);
+    vout.Position = mul(float4(vin.Position, 1.0f), wvp);
 
     // ワールド座標（ライト計算用）
     float3 pos_ws = mul(float4(vin.Position, 1.0f), World);
@@ -37,7 +40,7 @@ VSOutput main(VSInput vin)
     vout.LightTangentDirect = normalize(mul(-LightDirection, TBN));
 
     // 視線方向のベクトルをタンジェント空間へ
-    vout.ViewTangent = normalize(mul(EyePosition - pos_ws, TBN));
+    vout.ViewTangent = normalize(mul(CameraPosition - pos_ws, TBN));
 
     // テクスチャ座標
     vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y);

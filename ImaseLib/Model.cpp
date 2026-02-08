@@ -53,10 +53,45 @@ static std::string ChangeExtPngToDds(const std::string& filename)
 	return result;
 }
 
+// テクスチャロード関数
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Imase::Model::LoadTexture(ID3D11Device* device, const std::wstring& path)
+{
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+
+	DX::ThrowIfFailed(
+		CreateDDSTextureFromFile(device, path.c_str(), nullptr, srv.GetAddressOf())
+	);
+
+	return srv;
+}
+
 // コンストラクタ
 Imase::Model::Model(Imase::Effect* pEffect)
 	: m_pEffect(pEffect)
 {
+}
+
+// フルパスからディレクトリ部分を取得する
+static std::wstring GetDirectoryFromPath(const std::wstring& fullPath)
+{
+	// 最後の / または \ を探す
+	size_t pos = fullPath.find_last_of(L"/\\");
+
+	if (pos == std::wstring::npos)
+	{
+		// ディレクトリなし
+		return L"";
+	}
+
+	// 区切り文字を含めたディレクトリ部分を返す
+	return fullPath.substr(0, pos + 1);
+}
+
+// モデルデータ作成関数
+std::unique_ptr<Imase::Model> Imase::Model::CreateModel(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect)
+{
+	std::vector<uint8_t> data = DX::ReadData(fname.c_str());
+	return CreateModel(device, data.data(), pEffect, GetDirectoryFromPath(fname));
 }
 
 // モデルデータ作成関数
@@ -64,10 +99,12 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 (
 	ID3D11Device* device,
 	const uint8_t* meshData,
-	Imase::Effect* pEffect
+	Imase::Effect* pEffect,
+	std::wstring path
 )
 {
 	auto model = std::make_unique<Model>(pEffect);
+	auto& textures = model->m_textures;
 
 	size_t usedSize = 0;
 
@@ -94,8 +131,11 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 		// UTF-8 → UTF-16 変換
 		std::wstring name = StringToWString(str);
 
-		// テクスチャを登録
-		pEffect->SetTexture(device, name.c_str());
+		// テクスチャをロード
+		std::wstring fullPath = path + name;
+
+		// テクスチャハンドルを登録
+		textures.push_back(LoadTexture(device, fullPath));
 	}
 
 	// マテリアル名の数
@@ -125,13 +165,34 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 	usedSize += sizeof(uint32_t);
 	model->m_materials.reserve(*material_cnt);
 
+	struct MaterialData
+	{
+		DirectX::XMFLOAT3 ambientColor;     // アンビエント色
+		DirectX::XMFLOAT3 diffuseColor;     // ディフューズ色
+		DirectX::XMFLOAT3 specularColor;    // スペキュラー色
+		float specularPower;                // スペキュラーパワー
+		DirectX::XMFLOAT3 emissiveColor;    // エミッシブ色
+		int32_t textureIndex_BaseColor;     // テクスチャインデックス（ベースカラー）
+		int32_t textureIndex_NormalMap;     // テクスチャインデックス（法線マップ）
+	};
+
 	// マテリアル
 	for (uint32_t i = 0; i < *material_cnt; i++)
 	{
-		Imase::Material temp;
-		std::memcpy(&temp, meshData + usedSize, sizeof(Imase::Material));
-		model->m_materials.emplace_back(temp);
-		usedSize += sizeof(Imase::Material);
+		MaterialData temp;
+		std::memcpy(&temp, meshData + usedSize, sizeof(MaterialData));
+
+		Imase::Material m = {};
+		m.ambientColor = temp.ambientColor;
+		m.diffuseColor = temp.diffuseColor;
+		m.emissiveColor = temp.emissiveColor;
+		m.specularColor = temp.specularColor;
+		m.specularPower = temp.specularPower;
+		if (temp.textureIndex_BaseColor >= 0) m.pBaseColorSRV = textures[temp.textureIndex_BaseColor].Get();
+		if (temp.textureIndex_NormalMap >= 0) m.pNormalMapSRV = textures[temp.textureIndex_NormalMap].Get();
+		model->m_materials.emplace_back(m);
+
+		usedSize += sizeof(MaterialData);
 	}
 
 	// メッシュ情報数
@@ -191,13 +252,7 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 }
 
 // 描画関数
-void Imase::Model::Draw
-(
-	ID3D11DeviceContext* context,
-	DirectX::XMMATRIX world,
-	DirectX::XMMATRIX view,
-	DirectX::XMMATRIX projection
-)
+void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 {
 	// 頂点バッファの設定
 	ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
@@ -214,21 +269,25 @@ void Imase::Model::Draw
 	// メッシュ描画
 	for (auto& mesh : m_meshes)
 	{
-		// エフェクトの設定
-		m_pEffect->SetMaterial(&m_materials[mesh.materialIndex]);
-		m_pEffect->SetWorld(world);
-		m_pEffect->SetView(view);
-		m_pEffect->SetProjection(projection);
-		m_pEffect->Apply(context);
+		// 定数バッファの更新用データ作成
+		PerObjectCB cb = {};
+
+		Imase::Material* m = &m_materials[mesh.materialIndex];
+		cb.DiffuseColor = m->diffuseColor;
+		cb.EmissiveColor = m->emissiveColor;
+		cb.SpecularColor = m->specularColor;
+		cb.SpecularPower = m->specularPower;
+
+		cb.UseTexture = m->pBaseColorSRV ? 1 : 0;
+		cb.UseNormalMap = m->pNormalMapSRV ? 1 : 0;
+
+		cb.World = XMMatrixTranspose(world);
+		cb.WorldInverseTranspose = XMMatrixInverse(nullptr, world);
+
+		m_pEffect->Apply(context, cb, m);
 
 		context->DrawIndexed(mesh.primCount * 3, mesh.startIndex, 0);
 	}
-}
-
-// エフェクトの更新
-void Imase::Model::UpdateEffect(std::function<void(Imase::Effect*)> setEffect)
-{
-	if (setEffect) setEffect(m_pEffect);
 }
 
 // 指定マテリアルのディフューズ色を設定する関数

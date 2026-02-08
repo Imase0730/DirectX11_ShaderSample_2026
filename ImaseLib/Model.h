@@ -31,6 +31,9 @@ namespace Imase
 		// エフェクトへのポインタ
 		Imase::Effect* m_pEffect;
 
+		// テクスチャハンドル
+		std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
+
 		// マテリアル
 		std::vector<Imase::Material> m_materials;
 
@@ -49,21 +52,27 @@ namespace Imase
 		// 名前→インデックス
 		std::unordered_map<std::wstring, uint32_t> m_materialIndexMap;
 
+	private:
+
+		// テクスチャロード関数
+		static Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LoadTexture(ID3D11Device* device, const std::wstring& path);
+
 	public:
 
 		// コンストラクタ
 		Model(Imase::Effect* pEffect);
 
 		// モデルデータ作成関数
-		static std::unique_ptr<Imase::Model> CreateModel(ID3D11Device* device, const uint8_t* meshData, Imase::Effect* pEffect);
+		static std::unique_ptr<Imase::Model> CreateModel(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect);
+
+		// モデルデータ作成関数
+		static std::unique_ptr<Imase::Model> CreateModel(ID3D11Device* device, const uint8_t* meshData, Imase::Effect* pEffect, std::wstring path);
 
 		// 描画関数
-		void Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world, DirectX::XMMATRIX view, DirectX::XMMATRIX projection);
-
-		// エフェクトの更新
-		void UpdateEffect(std::function<void (Imase::Effect*)> setEffect);
+		void Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world);
 
 		// 指定マテリアルのディフューズ色を設定する関数
 		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMFLOAT3& color);
+
 	};
 }
