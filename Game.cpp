@@ -112,13 +112,13 @@ void Game::Render()
     //world = SimpleMath::Matrix::CreateTranslation(0, -1, 0)
     //    * SimpleMath::Matrix::CreateRotationX(XMConvertToRadians(90))
     //    * SimpleMath::Matrix::CreateTranslation(0, 1, 0);
-    world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    //world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
 
     //world = SimpleMath::Matrix::Identity;
 
     //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
-    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
+    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
 
     //m_model->UpdateEffect([&](Imase::Effect* effect)
     //    {
@@ -134,8 +134,18 @@ void Game::Render()
     Imase::PerFrameCB frameCB = {};
     frameCB.View = XMMatrixTranspose(m_debugCamera->GetCameraMatrix());
     frameCB.Projection = XMMatrixTranspose(m_proj);
-    frameCB.LightDirection = m_lightDirection;
-    frameCB.CameraPosition = m_debugCamera->GetEyePosition();
+    frameCB.LightDirection[0] = m_lightDirection;
+    frameCB.LightDiffuseColor[0] = Colors::White;
+    frameCB.LightDirection[1] = SimpleMath::Vector3(0, -1, 0);
+    frameCB.LightDiffuseColor[1] = Colors::Black;
+    frameCB.LightDirection[2] = SimpleMath::Vector3(0, -1, 0);
+    frameCB.LightDiffuseColor[2] = Colors::Black;
+
+    frameCB.LightSpecularColor[0] = Colors::White;
+    frameCB.LightSpecularColor[1] = Colors::Black;
+    frameCB.LightSpecularColor[2] = Colors::Black;
+
+    frameCB.EyePosition = m_debugCamera->GetEyePosition();
 
     m_effect->BeginFrame(context, frameCB);
 
@@ -307,6 +317,7 @@ void Game::CreateDeviceDependentResources()
 
     // ÉÇÉfÉãÇÃçÏê¨
     m_model = Imase::Model::CreateModel(device, L"Resources/Models/Dice.mdl", m_effect.get());
+//    m_model = Imase::Model::CreateModel(device, L"Resources/Models/Shpere.mdl", m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

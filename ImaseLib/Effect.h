@@ -7,13 +7,14 @@ namespace Imase
     // フレームの最初に更新
     struct PerFrameCB
     {
-        DirectX::XMMATRIX View;             // ビュー行列
-        DirectX::XMMATRIX Projection;       // プロジェクション行列
+        DirectX::XMMATRIX View;                     // ビュー行列
+        DirectX::XMMATRIX Projection;               // プロジェクション行列
 
-        DirectX::XMFLOAT3 LightDirection;   // 平行光源方向（正規化）
-        float _pad_LightDir;
+        DirectX::XMVECTOR LightDirection[3];        // 平行光源方向（正規化）
+        DirectX::XMVECTOR LightDiffuseColor[3];     // ライトの色
+        DirectX::XMVECTOR LightSpecularColor[3];    // スペキュラーの色
 
-        DirectX::XMFLOAT3 CameraPosition;   // 視点位置
+        DirectX::XMFLOAT3 EyePosition;              // カメラの位置
         float _pad_CameraPos;
     };
 
