@@ -185,7 +185,7 @@
     <ClInclude Include="ImaseLib\DebugCamera.h" />
     <ClInclude Include="ImaseLib\Effect.h" />
     <ClInclude Include="ImaseLib\GridFloor.h" />
-    <ClInclude Include="ImaseLib\IShader.h" />
+    <ClInclude Include="ImaseLib\ShaderBase.h" />
     <ClInclude Include="ImaseLib\Model.h" />
     <ClInclude Include="ImaseLib\BasicShader.h" />
     <ClInclude Include="pch.h" />
@@ -223,16 +223,16 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Shader\Common.hlsli" />
-    <None Include="Shader\Header.hlsli" />
+    <None Include="Shader\BasicHeader.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\PixelShader.hlsl">
+    <FxCompile Include="Shader\BasicPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\VertexShader.hlsl">
+    <FxCompile Include="Shader\BasicVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>

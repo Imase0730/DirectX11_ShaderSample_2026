@@ -72,7 +72,7 @@ namespace Imase
 		void Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world);
 
 		// 指定マテリアルのディフューズ色を設定する関数
-		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMFLOAT3& color);
+		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& color);
 
 	};
 }

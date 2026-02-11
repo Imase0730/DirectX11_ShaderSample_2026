@@ -1,3 +1,11 @@
+//--------------------------------------------------------------------------------------
+// File: Effect.cpp
+//
+// 描画に必要な設定を行うクラス
+//
+// Date: 2025.2.11
+// Author: Hideyasu Imase
+//--------------------------------------------------------------------------------------
 #include "pch.h"
 #include "Effect.h"
 
@@ -5,8 +13,15 @@ using namespace DirectX;
 using namespace Imase;
 
 // コンストラクタ
-Imase::Effect::Effect(ID3D11Device* device, Imase::IShader* pShader)
+Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     : m_pShader{ pShader }
+    , m_dirtyFlags{ 0xFFFFFFFF }
+    , m_world{}
+    , m_view{}
+    , m_projection{}
+    , m_ambientLightColor{}
+    , m_material{}
+    , m_lightStates{}
 {
     // ----- サンプラーステート ----- //
     {
@@ -26,20 +41,60 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::IShader* pShader)
     // 定数バッファ作成
     CreatePerFrameCB(device);
     CreatePerObjectCB(device);
+
+
+    EnableDefaultLighting();
 }
 
 // フレーム開始時の処理
-void Imase::Effect::BeginFrame(ID3D11DeviceContext* context, Imase::PerFrameCB& cb)
+void Imase::Effect::BeginFrame(ID3D11DeviceContext* context)
 {
-    // 定数バッファ更新（フレーム開始時）
-    UpdatePerFrameCB(context, cb);
+    // ビュー行列とプロジェクション行列が変更された
+    if (m_dirtyFlags & EffectDirtyFlags::ViewProjection)
+    {
+        m_dirtyFlags &= ~EffectDirtyFlags::ViewProjection;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b0;
+    }
+
+    // ライトが変更された
+    if (m_dirtyFlags & EffectDirtyFlags::Light)
+    {
+        m_dirtyFlags &= ~EffectDirtyFlags::Light;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b0;
+    }
+
+    // 変更があれば定数バッファを更新
+    if (m_dirtyFlags & EffectDirtyFlags::ConstantBuffer_b0)
+    {
+        UpdatePerFrameCB(context);
+        m_dirtyFlags &= ~EffectDirtyFlags::ConstantBuffer_b0;
+    }
 }
 
 // エフェクトを適応する関数
-void Imase::Effect::Apply(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb, const Material* material)
+void Imase::Effect::Apply(ID3D11DeviceContext* context)
 {
-    // 定数バッファを更新（オブジェクト毎）
-    UpdatePerObjectCB(context, cb);
+    // ワールド行列が変更された
+    if (m_dirtyFlags & EffectDirtyFlags::World)
+    {
+        m_dirtyFlags &= ~EffectDirtyFlags::World;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b1;
+    }
+
+    // マテリアルが変更された
+    if (m_dirtyFlags & EffectDirtyFlags::Material)
+    {
+        m_dirtyFlags &= ~EffectDirtyFlags::Material;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b1;
+    }
+
+    // 変更があれば定数バッファを更新
+    if (m_dirtyFlags & EffectDirtyFlags::ConstantBuffer_b1)
+    {
+        // 定数バッファを更新（オブジェクト毎）
+        UpdatePerObjectCB(context);
+        m_dirtyFlags &= ~EffectDirtyFlags::ConstantBuffer_b1;
+    }
 
     // シェーダーをバインド
     m_pShader->Bind(context);
@@ -53,15 +108,125 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context, const Imase::PerObjectCB
     context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
     // ベースカラー
-    if (material->pBaseColorSRV)
+    if (m_material.pBaseColorSRV)
     {
-        context->PSSetShaderResources(0, 1, &material->pBaseColorSRV);
+        ID3D11ShaderResourceView* srv[] = { m_material.pBaseColorSRV };
+        context->PSSetShaderResources(0, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(0, 1, nullSRV);
     }
 
     // 法線マップ
-    if (material->pNormalMapSRV)
+    if (m_material.pNormalMapSRV)
     {
-        context->PSSetShaderResources(1, 1, &material->pNormalMapSRV);
+        ID3D11ShaderResourceView* srv[] = { m_material.pNormalMapSRV };
+        context->PSSetShaderResources(1, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(1, 1, nullSRV);
+    }
+}
+
+// ビュー行列とプロジェクション行列を設定する関数
+void Imase::Effect::SetViewProjection(DirectX::XMMATRIX view, DirectX::XMMATRIX projection)
+{
+    m_view = view;
+    m_projection = projection;
+    m_dirtyFlags |= EffectDirtyFlags::ViewProjection;
+}
+
+// 指定ライトの有効・無効を設定する関数
+void Imase::Effect::SetLightEnabled(int lightNo, bool value)
+{
+    ValidateLightIndex(lightNo);
+    m_lightStates.lights[lightNo].enable = value;
+    m_dirtyFlags |= EffectDirtyFlags::Light;
+}
+
+// 指定ライトの方向を設定する関数
+void Imase::Effect::SetLightDirection(int lightNo, DirectX::XMFLOAT3 direction)
+{
+    ValidateLightIndex(lightNo);
+    m_lightStates.lights[lightNo].direction = direction;
+    m_dirtyFlags |= EffectDirtyFlags::Light;
+}
+
+// 指定ライトのディフューズ色を設定する関数
+void Imase::Effect::SetLightDiffuseColor(int lightNo, DirectX::XMVECTOR diffuseColor)
+{
+    ValidateLightIndex(lightNo);
+    XMStoreFloat4(&m_lightStates.lights[lightNo].diffuse, diffuseColor);
+    m_dirtyFlags |= EffectDirtyFlags::Light;
+}
+
+// 指定ライトのスペキュラ色を設定する関数
+void Imase::Effect::SetLightSpecularColor(int lightNo, DirectX::XMVECTOR specularColor)
+{
+    ValidateLightIndex(lightNo);
+    XMStoreFloat4(&m_lightStates.lights[lightNo].specular, specularColor);
+    m_dirtyFlags |= EffectDirtyFlags::Light;
+}
+
+// ワールド行列を設定する関数
+void Imase::Effect::SetWorld(const DirectX::XMMATRIX& world)
+{
+    m_world = world;
+    m_dirtyFlags |= EffectDirtyFlags::World;
+}
+
+// グローバルアンビエント色を設定する関数
+void Imase::Effect::SetAmbientLightColor(DirectX::XMVECTOR ambientColor)
+{
+    XMStoreFloat4(&m_ambientLightColor, ambientColor);
+    m_dirtyFlags |= EffectDirtyFlags::Light;
+}
+
+// マテリアルを設定する関数
+void Imase::Effect::SetMaterial(const Imase::Material& material)
+{
+    m_material = material;
+    m_dirtyFlags |= EffectDirtyFlags::Material;
+}
+
+// ディフォルトライトの設定関数
+void Imase::Effect::EnableDefaultLighting()
+{
+    static const XMFLOAT3 defaultDirections[LIGHT_MAX] =
+    {
+        { -0.5265408f, -0.5735765f, -0.6275069f  },
+        {  0.7198464f,  0.3420201f,  0.6040227f  },
+        {  0.4545195f, -0.7660444f,  0.4545195f  },
+    };
+
+    static const XMVECTOR defaultDiffuse[LIGHT_MAX] =
+    {
+        {  1.0000000f, 0.9607844f, 0.8078432f, },
+        {  0.9647059f, 0.7607844f, 0.4078432f, },
+        {  0.3231373f, 0.3607844f, 0.3937255f, },
+    };
+
+    static const XMVECTOR defaultSpecular[LIGHT_MAX] =
+    {
+        { 1.0000000f, 0.9607844f, 0.8078432f, },
+        { 0.0000000f, 0.0000000f, 0.0000000f, },
+        { 0.3231373f, 0.3607844f, 0.3937255f, },
+    };
+
+    static const XMVECTOR defaultAmbient = { 0.05333332f, 0.09882354f, 0.1819608f };
+
+    SetAmbientLightColor(defaultAmbient);
+
+    for (int i = 0; i < LIGHT_MAX; i++)
+    {
+        SetLightEnabled(i, true);
+        SetLightDirection(i, defaultDirections[i]);
+        SetLightDiffuseColor(i, defaultDiffuse[i]);
+        SetLightSpecularColor(i, defaultSpecular[i]);
     }
 }
 
@@ -94,20 +259,82 @@ void Imase::Effect::CreatePerObjectCB(ID3D11Device* device)
 }
 
 // 定数バッファ更新関数（フレーム更新時）
-void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context, const Imase::PerFrameCB& cb)
+void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
 {
+    Imase::PerFrameCB cb = {};
+
+    // ビュー行列
+    cb.View = m_view;
+
+    // 射影行列
+    cb.Projection = m_projection;
+
+    // カメラの位置
+    XMMATRIX viewInverse = XMMatrixInverse(nullptr, m_view);
+    XMStoreFloat4(&cb.EyePosition, viewInverse.r[3]);
+
+    // グローバルアンビエント色
+    cb.AmbientLightColor = m_ambientLightColor;
+
+    // ライト
+    for (int i = 0; i < LIGHT_MAX; i++)
+    {
+        if (m_lightStates.lights[i].enable)
+        {
+            XMVECTOR dir = XMLoadFloat3(&m_lightStates.lights[i].direction);
+            dir = XMVector3Normalize(dir);
+            XMStoreFloat4(&cb.LightDirection[i], XMVectorSetW(dir, 0.0f));
+            cb.LightDiffuseColor[i] = m_lightStates.lights[i].diffuse;
+            cb.LightSpecularColor[i] = m_lightStates.lights[i].specular;
+        }
+        else
+        {
+            cb.LightDirection[i] = { 0.0f, 0.0f, 0.0f, 0.0f };
+            cb.LightDiffuseColor[i] = { 0.0f, 0.0f, 0.0f, 0.0f };
+            cb.LightSpecularColor[i] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        }
+    }
+
     D3D11_MAPPED_SUBRESOURCE mapped = {};
-    context->Map(m_perFrameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    DX::ThrowIfFailed(
+        context->Map(m_perFrameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
+    );
     memcpy(mapped.pData, &cb, sizeof(cb));
     context->Unmap(m_perFrameCB.Get(), 0);
 }
 
 // 定数バッファ更新関数（モデル毎に更新）
-void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context, const Imase::PerObjectCB& cb)
+void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context)
 {
+    Imase::PerObjectCB cb = {};
+
+    // マテリアル
+    cb.DiffuseColor = m_material.diffuseColor;
+    cb.EmissiveColor = m_material.emissiveColor;
+    cb.SpecularColor = m_material.specularColor;
+    cb.MaterialParams.x = m_material.specularPower;
+    cb.MaterialParams.y = m_material.pBaseColorSRV ? 1.0f : 0.0f;
+    cb.MaterialParams.z = m_material.pNormalMapSRV ? 1.0f : 0.0f;
+
+    // ワールド行列
+    cb.World = m_world;
+    // ワールド行列の逆転置行列
+    cb.WorldInverseTranspose = XMMatrixTranspose(XMMatrixInverse(nullptr, m_world));
+
     D3D11_MAPPED_SUBRESOURCE mapped = {};
-    context->Map(m_perObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    DX::ThrowIfFailed(
+        context->Map(m_perObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
+    );
     memcpy(mapped.pData, &cb, sizeof(cb));
     context->Unmap(m_perObjectCB.Get(), 0);
+}
+
+// ライトの番号を検証する関数
+void Imase::Effect::ValidateLightIndex(int lightNo)
+{
+    if (lightNo < 0 || lightNo >= LIGHT_MAX)
+    {
+        throw std::invalid_argument("lightNo invalid");
+    }
 }
 

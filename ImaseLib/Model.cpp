@@ -167,7 +167,7 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 
 	struct MaterialData
 	{
-		DirectX::XMFLOAT3 ambientColor;     // アンビエント色
+		DirectX::XMFLOAT3 ambientColor;     // アンビエント色（使用しない）
 		DirectX::XMFLOAT3 diffuseColor;     // ディフューズ色
 		DirectX::XMFLOAT3 specularColor;    // スペキュラー色
 		float specularPower;                // スペキュラーパワー
@@ -183,10 +183,9 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 		std::memcpy(&temp, meshData + usedSize, sizeof(MaterialData));
 
 		Imase::Material m = {};
-		m.ambientColor = temp.ambientColor;
-		m.diffuseColor = temp.diffuseColor;
-		m.emissiveColor = temp.emissiveColor;
-		m.specularColor = temp.specularColor;
+		m.diffuseColor  = { temp.diffuseColor.x,  temp.diffuseColor.y,  temp.diffuseColor.z,  1.0f };
+		m.emissiveColor = { temp.emissiveColor.x, temp.emissiveColor.y, temp.emissiveColor.z, 1.0f };
+		m.specularColor = { temp.specularColor.x, temp.specularColor.y, temp.specularColor.z, 1.0f };
 		m.specularPower = temp.specularPower;
 		if (temp.textureIndex_BaseColor >= 0) m.pBaseColorSRV = textures[temp.textureIndex_BaseColor].Get();
 		if (temp.textureIndex_NormalMap >= 0) m.pNormalMapSRV = textures[temp.textureIndex_NormalMap].Get();
@@ -269,32 +268,19 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 	// メッシュ描画
 	for (auto& mesh : m_meshes)
 	{
-		// 定数バッファの更新用データ作成
-		PerObjectCB cb = {};
-
-		Imase::Material* m = &m_materials[mesh.materialIndex];
-		cb.DiffuseColor = m->diffuseColor;
-		cb.EmissiveColor = m->emissiveColor;
-		cb.SpecularColor = m->specularColor;
-		cb.SpecularPower = m->specularPower;
-
-		cb.UseTexture = m->pBaseColorSRV ? 1 : 0;
-		cb.UseNormalMap = m->pNormalMapSRV ? 1 : 0;
-
-		cb.World = XMMatrixTranspose(world);
-		cb.WorldInverseTranspose = XMMatrixInverse(nullptr, world);
-
-		m_pEffect->Apply(context, cb, m);
+		m_pEffect->SetMaterial(m_materials[mesh.materialIndex]);
+		m_pEffect->SetWorld(world);
+		m_pEffect->Apply(context);
 
 		context->DrawIndexed(mesh.primCount * 3, mesh.startIndex, 0);
 	}
 }
 
 // 指定マテリアルのディフューズ色を設定する関数
-void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMFLOAT3& color)
+void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& color)
 {
 	auto it = m_materialIndexMap.find(name);
 	if (it == m_materialIndexMap.end()) return;
-	m_materials[it->second].diffuseColor = color;
+	XMStoreFloat4(&m_materials[it->second].diffuseColor, color);
 }
 

@@ -130,24 +130,13 @@ void Game::Render()
 
     // ------------------------------------------------------- //
 
-    // フレームの最初に設定する定数バッファ
-    Imase::PerFrameCB frameCB = {};
-    frameCB.View = XMMatrixTranspose(m_debugCamera->GetCameraMatrix());
-    frameCB.Projection = XMMatrixTranspose(m_proj);
-    frameCB.LightDirection[0] = m_lightDirection;
-    frameCB.LightDiffuseColor[0] = Colors::White;
-    frameCB.LightDirection[1] = SimpleMath::Vector3(0, -1, 0);
-    frameCB.LightDiffuseColor[1] = Colors::Black;
-    frameCB.LightDirection[2] = SimpleMath::Vector3(0, -1, 0);
-    frameCB.LightDiffuseColor[2] = Colors::Black;
-
-    frameCB.LightSpecularColor[0] = Colors::White;
-    frameCB.LightSpecularColor[1] = Colors::Black;
-    frameCB.LightSpecularColor[2] = Colors::Black;
-
-    frameCB.EyePosition = m_debugCamera->GetEyePosition();
-
-    m_effect->BeginFrame(context, frameCB);
+    // ビュー行列とプロジェクション行列を設定
+    m_effect->SetViewProjection(view, m_proj);
+    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0,0,-1));
+    //m_effect->SetLightEnabled(1, false);
+    //m_effect->SetLightEnabled(2, false);
+    //m_effect->SetLightDiffuseColor(2, Colors::Red);
+    m_effect->BeginFrame(context);
 
     // ------------------------------------------------------- //
 
@@ -317,7 +306,7 @@ void Game::CreateDeviceDependentResources()
 
     // モデルの作成
     m_model = Imase::Model::CreateModel(device, L"Resources/Models/Dice.mdl", m_effect.get());
-//    m_model = Imase::Model::CreateModel(device, L"Resources/Models/Shpere.mdl", m_effect.get());
+    //m_model = Imase::Model::CreateModel(device, L"Resources/Models/Shpere.mdl", m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

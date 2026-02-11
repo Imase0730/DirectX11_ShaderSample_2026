@@ -1,3 +1,11 @@
+//--------------------------------------------------------------------------------------
+// File: ShaderBase.h
+//
+// シェーダーの基底クラス
+//
+// Date: 2025.2.11
+// Author: Hideyasu Imase
+//--------------------------------------------------------------------------------------
 #pragma once
 
 namespace Imase
@@ -5,7 +13,7 @@ namespace Imase
     enum class ShaderStage : uint32_t
     {
         None = 0,
-        VS = 1 << 0,
+        VS = 1 << 0, 
         PS = 1 << 1,
         GS = 1 << 2,
         HS = 1 << 3,
@@ -22,11 +30,11 @@ namespace Imase
         ShaderStage stage;      // 使用ステージ
     };
 
-    class IShader
+    class ShaderBase
     {
     public:
 
-        virtual ~IShader() = default;
+        virtual ~ShaderBase() = default;
 
         // シェーダー・入力レイアウトをバインド
         virtual void Bind(ID3D11DeviceContext* context) = 0;

@@ -1,10 +1,18 @@
+//--------------------------------------------------------------------------------------
+// File: BasicShader.h
+//
+// ベーシックシェーダー
+//
+// Date: 2025.2.11
+// Author: Hideyasu Imase
+//--------------------------------------------------------------------------------------
 #pragma once
 
-#include "IShader.h"
+#include "ShaderBase.h"
 
 namespace Imase
 {
-	class BasicShader : public IShader
+	class BasicShader : public ShaderBase
 	{
     private:
 
