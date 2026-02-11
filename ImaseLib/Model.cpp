@@ -66,9 +66,62 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Imase::Model::LoadTexture(ID3D1
 }
 
 // コンストラクタ
-Imase::Model::Model(Imase::Effect* pEffect)
+Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 	: m_pEffect(pEffect)
 {
+	// ----- ラスタライザーステート ----- //
+	{
+		// ラスタライザーステートの作成
+		D3D11_RASTERIZER_DESC desc = {};
+		desc.FillMode = D3D11_FILL_SOLID;
+		desc.CullMode = D3D11_CULL_BACK;
+		desc.FrontCounterClockwise = FALSE;
+		desc.DepthBias = 0;
+		desc.DepthBiasClamp = 0.0f;
+		desc.SlopeScaledDepthBias = 0.0f;
+		desc.DepthClipEnable = TRUE;
+		desc.ScissorEnable = FALSE;
+		desc.MultisampleEnable = FALSE;
+		desc.AntialiasedLineEnable = FALSE;
+		DX::ThrowIfFailed(
+			device->CreateRasterizerState(&desc, m_rasterizerState.ReleaseAndGetAddressOf())
+		);
+	}
+
+	// ----- 深度ステンシルステート ----- //
+	{
+		// 深度ステンシルステートの作成
+		D3D11_DEPTH_STENCIL_DESC desc = {};
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = FALSE;
+		DX::ThrowIfFailed(
+			device->CreateDepthStencilState(&desc, m_depthStencilState.ReleaseAndGetAddressOf())
+		);
+	}
+
+	// ----- ブレンドステート ----- //
+	{
+		// ブレンドステートの作成
+		D3D11_BLEND_DESC desc = {};
+		desc.AlphaToCoverageEnable = FALSE;
+		desc.IndependentBlendEnable = FALSE;
+
+		// ストレートアルファの設定
+		desc.RenderTarget[0].BlendEnable = TRUE;
+		desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+		DX::ThrowIfFailed(
+			device->CreateBlendState(&desc, m_blendState.ReleaseAndGetAddressOf())
+		);
+	}
 }
 
 // フルパスからディレクトリ部分を取得する
@@ -103,7 +156,7 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 	std::wstring path
 )
 {
-	auto model = std::make_unique<Model>(pEffect);
+	auto model = std::make_unique<Model>(device, pEffect);
 	auto& textures = model->m_textures;
 
 	size_t usedSize = 0;
@@ -253,6 +306,15 @@ std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
 // 描画関数
 void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 {
+	// ラスタライザーステートの設定
+	context->RSSetState(m_rasterizerState.Get());
+
+	// 深度ステンシルバッファの設定
+	context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+
+	// ブレンドステートの設定
+	context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
+
 	// 頂点バッファの設定
 	ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
 	UINT stride = sizeof(Imase::VertexPositionNormalTextureTangent);
@@ -276,11 +338,43 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 	}
 }
 
+// 指定マテリアルを取得する関数
+Imase::Material* Imase::Model::GetMaterialByName(const std::wstring& name)
+{
+	auto it = m_materialIndexMap.find(name);
+	if (it == m_materialIndexMap.end()) return nullptr;
+	return &m_materials[it->second];
+}
+
 // 指定マテリアルのディフューズ色を設定する関数
-void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& color)
+void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& diffuseColor)
 {
 	auto it = m_materialIndexMap.find(name);
 	if (it == m_materialIndexMap.end()) return;
-	XMStoreFloat4(&m_materials[it->second].diffuseColor, color);
+	XMStoreFloat4(&m_materials[it->second].diffuseColor, diffuseColor);
+}
+
+// 指定マテリアルのエミッシブ色を設定する関数
+void Imase::Model::SetEmissiveColorByName(const std::wstring& name, const DirectX::XMVECTOR& emissiveColor)
+{
+	auto it = m_materialIndexMap.find(name);
+	if (it == m_materialIndexMap.end()) return;
+	XMStoreFloat4(&m_materials[it->second].emissiveColor, emissiveColor);
+}
+
+// 指定マテリアルのスペキュラ色を設定する関数
+void Imase::Model::SetSpecularColorByName(const std::wstring& name, const DirectX::XMVECTOR& specularColor)
+{
+	auto it = m_materialIndexMap.find(name);
+	if (it == m_materialIndexMap.end()) return;
+	XMStoreFloat4(&m_materials[it->second].specularColor, specularColor);
+}
+
+// 指定マテリアルのスペキュラパワーを設定する関数
+void Imase::Model::SetSpecularPowerByName(const std::wstring& name, float specularPower)
+{
+	auto it = m_materialIndexMap.find(name);
+	if (it == m_materialIndexMap.end()) return;
+	m_materials[it->second].specularPower = specularPower;
 }
 

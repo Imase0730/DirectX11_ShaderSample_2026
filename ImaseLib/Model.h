@@ -52,6 +52,15 @@ namespace Imase
 		// 名前→インデックス
 		std::unordered_map<std::wstring, uint32_t> m_materialIndexMap;
 
+		// ラスタライザーステート
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
+
+		// 深度ステンシルステート
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+		// ブレンドステート
+		Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
+
 	private:
 
 		// テクスチャロード関数
@@ -60,7 +69,7 @@ namespace Imase
 	public:
 
 		// コンストラクタ
-		Model(Imase::Effect* pEffect);
+		Model(ID3D11Device* device, Imase::Effect* pEffect);
 
 		// モデルデータ作成関数
 		static std::unique_ptr<Imase::Model> CreateModel(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect);
@@ -71,8 +80,23 @@ namespace Imase
 		// 描画関数
 		void Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world);
 
+		// エフェクトを取得する関数
+		Imase::Effect* GetEffect() const { return m_pEffect; }
+
+		// 指定マテリアルを取得する関数
+		Imase::Material* GetMaterialByName(const std::wstring& name);
+
 		// 指定マテリアルのディフューズ色を設定する関数
-		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& color);
+		void SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& diffuseColor);
+
+		// 指定マテリアルのエミッシブ色を設定する関数
+		void SetEmissiveColorByName(const std::wstring& name, const DirectX::XMVECTOR& emissiveColor);
+
+		// 指定マテリアルのスペキュラ色を設定する関数
+		void SetSpecularColorByName(const std::wstring& name, const DirectX::XMVECTOR& specularColor);
+
+		// 指定マテリアルのスペキュラパワーを設定する関数
+		void SetSpecularPowerByName(const std::wstring& name, float specularPower);
 
 	};
 }

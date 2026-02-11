@@ -42,7 +42,7 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     CreatePerFrameCB(device);
     CreatePerObjectCB(device);
 
-
+    // ディフォルトライトの設定
     EnableDefaultLighting();
 }
 

@@ -12,6 +12,7 @@
 #include "ImaseLib/BasicShader.h"
 #include "ImaseLib/Effect.h"
 #include "ImaseLib/Model.h"
+#include "ImaseLib/NormalMapShader.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -82,20 +83,14 @@ private:
 
     // --------------------------------------------------------- //
 
-    // ラスタライザーステート（RS)
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
-
-    // 深度ステンシルステート（OM）
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilState;
-
-    // ブレンドステート（OM）
-    Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
-
     // ライトの方向
     DirectX::SimpleMath::Vector3 m_lightDirection;
 
     // シェーダー
     std::unique_ptr<Imase::BasicShader> m_shader;
+
+    // シェーダー
+    std::unique_ptr<Imase::NormalMapShader> m_Nshader;
 
     // エフェクト
     std::unique_ptr<Imase::Effect> m_effect;

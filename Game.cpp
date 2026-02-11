@@ -98,15 +98,6 @@ void Game::Render()
 
     // -------------------------------------------------------------------------------------- //
 
-    // ラスタライザーステートの設定
-    context->RSSetState(m_rasterizerState.Get());
-
-    // 深度ステンシルバッファの設定
-    context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
-
-    // ブレンドステートの設定
-    context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
-
     SimpleMath::Matrix world;
 
     //world = SimpleMath::Matrix::CreateTranslation(0, -1, 0)
@@ -131,14 +122,19 @@ void Game::Render()
     // ------------------------------------------------------- //
 
     // ビュー行列とプロジェクション行列を設定
-    m_effect->SetViewProjection(view, m_proj);
-    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0,0,-1));
+    Imase::Effect* effect = m_model->GetEffect();
+    effect->SetViewProjection(view, m_proj);
+    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, 0));
+    effect->SetLightDirection(0, m_lightDirection);
+    //m_effect->SetLightEnabled(0, true);
     //m_effect->SetLightEnabled(1, false);
     //m_effect->SetLightEnabled(2, false);
-    //m_effect->SetLightDiffuseColor(2, Colors::Red);
-    m_effect->BeginFrame(context);
+    //m_effect->SetLightDiffuseColor(2, Colors::Black);
+    effect->BeginFrame(context);
 
     // ------------------------------------------------------- //
+
+    //m_model->SetDiffuseColorByName(L"Dice", Colors::Red);
 
     // モデルの描画
     m_model->Draw(context, world);
@@ -244,65 +240,12 @@ void Game::CreateDeviceDependentResources()
 
     // -------------------------------------------------------------------------------------- //
 
-    // ----- ラスタライザーステート ----- //
-    {
-        // ラスタライザーステートの作成
-        D3D11_RASTERIZER_DESC desc = {};
-        desc.FillMode = D3D11_FILL_SOLID;
-        desc.CullMode = D3D11_CULL_BACK;
-        desc.FrontCounterClockwise = FALSE;
-        desc.DepthBias = 0;
-        desc.DepthBiasClamp = 0.0f;
-        desc.SlopeScaledDepthBias = 0.0f;
-        desc.DepthClipEnable = TRUE;
-        desc.ScissorEnable = FALSE;
-        desc.MultisampleEnable = FALSE;
-        desc.AntialiasedLineEnable = FALSE;
-        DX::ThrowIfFailed(
-            device->CreateRasterizerState(&desc, m_rasterizerState.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- 深度ステンシルステート ----- //
-    {
-        // 深度ステンシルステートの作成
-        D3D11_DEPTH_STENCIL_DESC desc = {};
-        desc.DepthEnable = TRUE;
-        desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = FALSE;
-        DX::ThrowIfFailed(
-            device->CreateDepthStencilState(&desc, m_depthStencilState.ReleaseAndGetAddressOf())
-        );
-    }
-
-    // ----- ブレンドステート ----- //
-    {
-        // ブレンドステートの作成
-        D3D11_BLEND_DESC desc = {};
-        desc.AlphaToCoverageEnable = FALSE;
-        desc.IndependentBlendEnable = FALSE;
-
-        // 乗算済みアルファの設定
-        desc.RenderTarget[0].BlendEnable = TRUE;
-        desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-        desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-        desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-        desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-
-        DX::ThrowIfFailed(
-            device->CreateBlendState(&desc, m_blendState.ReleaseAndGetAddressOf())
-        );
-    }
-
     // シェーダーの作成
     m_shader = std::make_unique<Imase::BasicShader>(device);
+    m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
 
     // モデルの作成
     m_model = Imase::Model::CreateModel(device, L"Resources/Models/Dice.mdl", m_effect.get());

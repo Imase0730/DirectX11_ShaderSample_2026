@@ -1,5 +1,5 @@
 #include "Common.hlsli"
-#include "BasicHeader.hlsli"
+#include "Basic.hlsli"
 
 struct ColorPair
 {
@@ -40,9 +40,9 @@ ColorPair ComputeLights(float3 eyeVector, float3 normal)
     return result;
 }
 
-LightingVaryings main(VSInput vin)
+Varyings main(VSInput vin)
 {
-    LightingVaryings vout;
+    Varyings vout;
 
     // ç¿ïWïœä∑
     float4 worldPos = mul(World, float4(vin.Position, 1.0f));

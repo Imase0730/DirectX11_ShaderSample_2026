@@ -51,6 +51,9 @@
     <ClInclude Include="ImaseLib\ShaderBase.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\NormalMapShader.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -77,6 +80,9 @@
     <ClCompile Include="ImaseLib\BasicShader.cpp">
       <Filter>ImaseLib</Filter>
     </ClCompile>
+    <ClCompile Include="ImaseLib\NormalMapShader.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -93,10 +99,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Shader\BasicHeader.hlsli">
+    <None Include="Shader\Basic.hlsli">
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Common.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Shader\NormalMap.hlsli">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>
@@ -105,6 +114,12 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicPS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\NormalMapPS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\NormalMapVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>
