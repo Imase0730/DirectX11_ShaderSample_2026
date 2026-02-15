@@ -325,8 +325,7 @@ void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
 
     // グローバルアンビエント色
     cb.AmbientLightColor = m_ambientLightColor;
-    cb.AmbientLightColor = XMFLOAT4{0.0f,0.0f,0.0f,1.0f};
-
+ 
     // ライト
     for (int i = 0; i < LIGHT_MAX; i++)
     {
@@ -346,6 +345,7 @@ void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
         }
     }
 
+    // 定数バッファ更新(b0)
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     DX::ThrowIfFailed(
         context->Map(m_perFrameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
@@ -364,6 +364,7 @@ void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context)
     // ワールド行列の逆転置行列
     cb.WorldInverseTranspose = XMMatrixTranspose(XMMatrixInverse(nullptr, m_world));
 
+    // 定数バッファ更新(b1)
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     DX::ThrowIfFailed(
         context->Map(m_perObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
@@ -386,6 +387,7 @@ void Imase::Effect::UpdatePerMaterialCB(ID3D11DeviceContext* context)
     if (m.baseColorTexIndex >= 0) cb.Flags |= FLAG_BASECOLOR_TEX;
     if (m.normalTexIndex >= 0) cb.Flags |= FLAG_NORMALMAP_TEX;
 
+    // 定数バッファ更新(b2)
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     DX::ThrowIfFailed(
         context->Map(m_perMaterialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)

@@ -2,6 +2,7 @@
 #include "Model.h"
 #include "Imdl.h"
 #include "ChunkIO.h"
+#include "BinaryReader.h"
 
 using namespace DirectX;
 using namespace Imase;
@@ -11,6 +12,61 @@ using namespace Imase;
 // --------------------------------------------------------------------------------------------- //
 // Imdl形式のローダー
 // --------------------------------------------------------------------------------------------- //
+static MaterialInfo DeserializeMaterial(BinaryReader& reader)
+{
+	MaterialInfo m{};
+
+	m.diffuseColor.x = reader.ReadFloat();
+	m.diffuseColor.y = reader.ReadFloat();
+	m.diffuseColor.z = reader.ReadFloat();
+	m.diffuseColor.w = reader.ReadFloat();
+
+	m.metallicFactor = reader.ReadFloat();
+	m.roughnessFactor = reader.ReadFloat();
+
+	m.emissiveColor.x = reader.ReadFloat();
+	m.emissiveColor.y = reader.ReadFloat();
+	m.emissiveColor.z = reader.ReadFloat();
+
+	m.baseColorTexIndex = reader.ReadInt32();
+	m.normalTexIndex = reader.ReadInt32();
+	m.metalRoughTexIndex = reader.ReadInt32();
+	m.emissiveTexIndex = reader.ReadInt32();
+
+	return m;
+}
+
+static VertexPositionNormalTextureTangent DeserializeVertex(BinaryReader& reader)
+{
+	VertexPositionNormalTextureTangent v{};
+
+	v.position.x = reader.ReadFloat();
+	v.position.y = reader.ReadFloat();
+	v.position.z = reader.ReadFloat();
+
+	v.normal.x = reader.ReadFloat();
+	v.normal.y = reader.ReadFloat();
+	v.normal.z = reader.ReadFloat();
+
+	v.texcoord.x = reader.ReadFloat();
+	v.texcoord.y = reader.ReadFloat();
+
+	v.tangent.x = reader.ReadFloat();
+	v.tangent.y = reader.ReadFloat();
+	v.tangent.z = reader.ReadFloat();
+	v.tangent.w = reader.ReadFloat();
+
+	return v;
+}
+
+static MeshInfo DeserializeMesh(BinaryReader& reader)
+{
+	MeshInfo m{};
+	m.startIndex = reader.ReadUInt32();
+	m.primCount = reader.ReadUInt32();
+	m.materialIndex = reader.ReadUInt32();
+	return m;
+}
 
 // Imdlのロード関数
 static HRESULT LoadImdl
@@ -32,8 +88,7 @@ static HRESULT LoadImdl
 
 	// ヘッダ
 	FileHeader header{};
-	if (!ifs.read(reinterpret_cast<char*>(&header), sizeof(header)))
-		return E_FAIL;
+	ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
 
 	if (header.magic != 'IMDL')
 	{
@@ -43,63 +98,77 @@ static HRESULT LoadImdl
 	// チャンク読み込み
 	for (uint32_t i = 0; i < header.chunkCount; ++i)
 	{
-		ChunkIO::ChunkHeader chunkHeader;
+		Imase::ChunkHeader ch{};
 		std::vector<uint8_t> buffer;
-		if (!ChunkIO::ReadChunk(ifs, chunkHeader, buffer))
+
+		// チェンクデータ読み込み
+		if (!Imase::ReadChunk(ifs, ch, buffer))
 			return E_FAIL;
 
-		switch (chunkHeader.type)
-		{
-		case CHUNK_TEXTURE:
-		{
-			const uint8_t* ptr = buffer.data();
-			uint32_t texCount = *(const uint32_t*)ptr;
-			ptr += sizeof(uint32_t);
+		// 指定サイズのデータを取得するリーダー
+		BinaryReader reader(buffer);
 
-			textures.resize(texCount);
+		switch (ch.type)
+		{
 
-			for (uint32_t t = 0; t < texCount; ++t)
+		case CHUNK_TEXTURE:		// TextureType
+		{
+			// テクスチャの数
+			uint32_t count = reader.ReadUInt32();
+			textures.resize(count);
+
+			for (uint32_t t = 0; t < count; t++)
 			{
-				textures[t].type = static_cast<TextureType>(*(const uint32_t*)ptr); ptr += sizeof(uint32_t);
-				uint32_t dataSize = *(const uint32_t*)ptr; ptr += sizeof(uint32_t);
-
-				textures[t].data.resize(dataSize);
-				memcpy(textures[t].data.data(), ptr, dataSize);
-				ptr += dataSize;
+				// テクスチャ
+				textures[t].type = static_cast<TextureType>(reader.ReadUInt32());
+				uint32_t size = reader.ReadUInt32();
+				textures[t].data.resize(size);
+				reader.ReadBytes(textures[t].data.data(), size);
 			}
 			break;
 		}
-		case CHUNK_MATERIAL:
+
+		case CHUNK_MATERIAL:	// MaterialInfo
 		{
-			size_t matCount = buffer.size() / sizeof(MaterialInfo);
-			materials.resize(matCount);
-			memcpy(materials.data(), buffer.data(), buffer.size());
+			uint32_t count = reader.ReadUInt32();
+			materials.reserve(count);
+			for (uint32_t m = 0; m < count; m++)
+			{
+				materials.push_back(DeserializeMaterial(reader));
+			}
 			break;
 		}
-		case CHUNK_MESH:
+
+		case CHUNK_MESH:		// MeshInfo
 		{
-			size_t meshCount = buffer.size() / sizeof(MeshInfo);
-			meshes.resize(meshCount);
-			memcpy(meshes.data(), buffer.data(), buffer.size());
+			uint32_t count = reader.ReadUInt32();
+			meshes.reserve(count);
+			for (uint32_t m = 0; m < count; m++)
+			{
+				meshes.push_back(DeserializeMesh(reader));
+			}
 			break;
 		}
-		case CHUNK_VERTEX:
+
+		case CHUNK_VERTEX:		// VertexPositionNormalTextureTangent
 		{
-			size_t vertCount = buffer.size() / sizeof(VertexPositionNormalTextureTangent);
-			vertices.resize(vertCount);
-			memcpy(vertices.data(), buffer.data(), buffer.size());
+			uint32_t count = reader.ReadUInt32();
+			vertices.reserve(count);
+			for (uint32_t v = 0; v < count; v++)
+			{
+				vertices.push_back(DeserializeVertex(reader));
+			}
 			break;
 		}
-		case CHUNK_INDEX:
+
+		case CHUNK_INDEX:		// uint32_t
 		{
-			size_t idxCount = buffer.size() / sizeof(uint32_t);
-			indices.resize(idxCount);
-			memcpy(indices.data(), buffer.data(), buffer.size());
+			indices = reader.ReadVector<uint32_t>();
 			break;
 		}
+
 		default:
-			std::cerr << "Unknown chunk type: " << chunkHeader.type << "\n";
-			break;
+			throw std::runtime_error("Unknown chunk type");
 		}
 	}
 

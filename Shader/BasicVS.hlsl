@@ -1,35 +1,50 @@
 #include "Common.hlsli"
 #include "Basic.hlsli"
 
-float3 ComputePBR(float3 N, float3 V, float3 L, float3 lightColor)
+struct ColorPair
 {
-    float3 H = normalize(V + L);
+    float4 Diffuse;
+    float4 Specular;
+};
 
-    float NdotL = saturate(dot(N, L));
-    float NdotV = saturate(dot(N, V));
-    float HdotV = saturate(dot(H, V));
+// ライトの計算（Blinn-Phong）
+ColorPair ComputeLights(float3 eyeVector, float3 normal)
+{
+    float3 N = normalize(normal);
+    float3 V = normalize(eyeVector);
 
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), BaseColor.rgb, Metallic);
+    ColorPair result;
+    result.Diffuse = float4(EmissiveColor, 1.0f) + AmbientLightColor * BaseColor;
+    result.Specular = 0;
 
-    float3 F = FresnelSchlick(HdotV, F0);
-    float D = DistributionGGX(N, H, Roughness);
-    float G = GeometrySmith(N, V, L, Roughness);
+    [unroll]
+    for (int i = 0; i < 3; i++)
+    {
+        float3 L = normalize(-LightDirection[i].xyz); // ライト方向へのベクトル
+        float3 H = normalize(L + V); // ハーフベクトル
 
-    float3 numerator = D * G * F;
-    float denominator = 4.0 * NdotV * NdotL + 0.001;
-    float3 specular = numerator / denominator;
+        // 内積を取って光の強度を計算
+        float NdotL = saturate(dot(N, L));
+        float NdotH = saturate(dot(N, H));
 
-    float3 kS = F;
-    float3 kD = (1.0 - kS) * (1.0 - Metallic);
+        // ディフューズ
+        result.Diffuse += LightDiffuseColor[i] * BaseColor * NdotL;
 
-    float3 diffuse = kD * BaseColor.rgb / PI;
-
-    return (diffuse + specular) * lightColor * NdotL;
+        // 影の部分はスペキュラなし
+        if (NdotL > 0)
+        {
+            // スペキュラ（PBRのメタリックとラフネスから簡易方法で算出）
+            float3 specular = lerp(float3(0.04f, 0.04f, 0.04f), BaseColor.rgb, Metallic);
+            float specularPower = 1000.0f * (1 - Roughness) * (1 - Roughness);
+            result.Specular += LightSpecularColor[i] * float4(specular, 1.0f) * pow(NdotH, specularPower);
+        }
+    }
+    return result;
 }
 
-Varyings main(VSInput vin)
+VSOutput main(VSInput vin)
 {
-    Varyings vout;
+    VSOutput vout;
 
     // 座標変換
     float4 worldPos = mul(World, float4(vin.Position, 1.0f));
@@ -40,28 +55,17 @@ Varyings main(VSInput vin)
     float3 eyeVector = normalize(EyePosition.xyz - worldPos.xyz);
 
     // 法線ベクトルをワールド空間へ
-    float3 normal = normalize(mul((float3x3)WorldInverseTranspose, vin.Normal));
+    float3 normal = normalize(mul((float3x3) WorldInverseTranspose, vin.Normal));
 
-    // ライト計算
-    float3 Lo = 0;
+    // ライトの計算
+    ColorPair result = ComputeLights(eyeVector, normal);
 
-    for (int i = 0; i < 3; i++)
-    {
-        float3 L = normalize(-LightDirection[i].xyz);
-        Lo += ComputePBR(normal, eyeVector, L, LightDiffuseColor[i].rgb);
-    }
+    // 色
+    vout.Color = result.Diffuse + result.Specular;
+    vout.Color.a = 1.0f;
     
-    float3 ambient = AmbientLightColor.rgb * BaseColor.rgb;
-    float3 finalColor = Lo + ambient + EmissiveColor.rgb;
-
-    // ガンマ補正
-    finalColor = pow(finalColor, 1.0 / 2.2);
-
-    vout.Color = float4(finalColor, 1.0);
-
     // テクスチャ座標
     vout.TexCoord = vin.TexCoord;
 
     return vout;
 }
-

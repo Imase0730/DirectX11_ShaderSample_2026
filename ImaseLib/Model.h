@@ -2,7 +2,6 @@
 
 #include "Effect.h"
 #include "Imdl.h"
-//#include <unordered_map>
 
 namespace Imase
 {
@@ -15,7 +14,7 @@ namespace Imase
 		Imase::Effect* m_pEffect;
 
 		// メッシュ情報
-		std::vector<MeshInfo> m_meshes;
+		std::vector<Imase::MeshInfo> m_meshes;
 
 		// 頂点バッファ
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;

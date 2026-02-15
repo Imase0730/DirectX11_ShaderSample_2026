@@ -1,6 +1,6 @@
 
 // 頂点シェーダーの出力用
-struct Varyings
+struct VSOutput
 {
     float4 Color    : COLOR;        // 色
     float2 TexCoord : TEXCOORD0;    // テクスチャ座標

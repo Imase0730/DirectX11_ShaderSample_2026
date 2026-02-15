@@ -108,8 +108,8 @@ void Game::Render()
     //world = SimpleMath::Matrix::Identity;
 
     //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
-    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
+    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
 
     //m_model->UpdateEffect([&](Imase::Effect* effect)
     //    {
@@ -125,12 +125,12 @@ void Game::Render()
     Imase::Effect* effect = m_model->GetEffect();
     effect->SetViewProjection(view, m_proj);
 
- /*   effect->SetAmbientLightColor(Colors::White);*/
+//    effect->SetAmbientLightColor(Colors::White);
 
-    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, 0));
+    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
     //effect->SetLightDirection(0, m_lightDirection);
     //effect->SetLightDiffuseColor(0, Colors::White);
-    ////m_effect->SetLightEnabled(0, true);
+    //////m_effect->SetLightEnabled(0, true);
     //m_effect->SetLightEnabled(1, false);
     //m_effect->SetLightEnabled(2, false);
     //m_effect->SetLightDiffuseColor(2, Colors::Black);

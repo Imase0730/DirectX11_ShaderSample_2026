@@ -182,6 +182,7 @@
     <ClInclude Include="DirectXTK_Utilities\DebugDraw.h" />
     <ClInclude Include="DirectXTK_Utilities\ReadData.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="ImaseLib\BinaryReader.h" />
     <ClInclude Include="ImaseLib\ChunkIO.h" />
     <ClInclude Include="ImaseLib\DebugCamera.h" />
     <ClInclude Include="ImaseLib\Effect.h" />

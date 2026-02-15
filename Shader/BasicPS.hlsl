@@ -4,7 +4,7 @@
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
-float4 main(Varyings pin) : SV_Target
+float4 main(VSOutput pin) : SV_Target
 {
     // F
     float4 color = pin.Color;

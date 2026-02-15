@@ -109,7 +109,7 @@ namespace Imase
         std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
 
         // マテリアル情報
-        std::vector<Imase::MaterialInfo> m_materials;
+        std::vector<MaterialInfo> m_materials;
 
         // マテリアルインデックス
         uint32_t m_materialIndex;
