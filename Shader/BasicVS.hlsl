@@ -1,43 +1,30 @@
 #include "Common.hlsli"
 #include "Basic.hlsli"
 
-struct ColorPair
+float3 ComputePBR(float3 N, float3 V, float3 L, float3 lightColor)
 {
-    float4 Diffuse;
-    float4 Specular;
-};
+    float3 H = normalize(V + L);
 
-// ライトの計算（Blinn-Phong）
-ColorPair ComputeLights(float3 eyeVector, float3 normal)
-{
-    float3 N = normalize(normal);
-    float3 V = normalize(eyeVector);
+    float NdotL = saturate(dot(N, L));
+    float NdotV = saturate(dot(N, V));
+    float HdotV = saturate(dot(H, V));
 
-    ColorPair result;
-    result.Diffuse = EmissiveColor + AmbientLightColor * DiffuseColor;
-    result.Specular = 0;
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), BaseColor.rgb, Metallic);
 
-    [unroll]
-    for (int i = 0; i < 3; i++)
-    {
-        float3 L = normalize(-LightDirection[i].xyz);   // ライト方向へのベクトル
-        float3 H = normalize(L + V);                // ハーフベクトル
+    float3 F = FresnelSchlick(HdotV, F0);
+    float D = DistributionGGX(N, H, Roughness);
+    float G = GeometrySmith(N, V, L, Roughness);
 
-        // 法線と内積を取って光の強度を計算
-        float NdotL = saturate(dot(N, L));
-        float NdotH = saturate(dot(N, H));
+    float3 numerator = D * G * F;
+    float denominator = 4.0 * NdotV * NdotL + 0.001;
+    float3 specular = numerator / denominator;
 
-        // ディフューズ
-        result.Diffuse += LightDiffuseColor[i] * DiffuseColor * NdotL;
+    float3 kS = F;
+    float3 kD = (1.0 - kS) * (1.0 - Metallic);
 
-        // 影の部分はスペキュラなし
-        if (NdotL > 0)
-        {
-            // スペキュラ（MaterialParams.x = SpecularPower）
-            result.Specular += LightSpecularColor[i] * SpecularColor * pow(NdotH, MaterialParams.x);
-        }
-    }
-    return result;
+    float3 diffuse = kD * BaseColor.rgb / PI;
+
+    return (diffuse + specular) * lightColor * NdotL;
 }
 
 Varyings main(VSInput vin)
@@ -55,13 +42,23 @@ Varyings main(VSInput vin)
     // 法線ベクトルをワールド空間へ
     float3 normal = normalize(mul((float3x3)WorldInverseTranspose, vin.Normal));
 
-    // ライトの計算
-    ColorPair result = ComputeLights(eyeVector, normal);
+    // ライト計算
+    float3 Lo = 0;
 
-    // 色
-    vout.Color = result.Diffuse + result.Specular;
-    vout.Color.a = 1.0f;
+    for (int i = 0; i < 3; i++)
+    {
+        float3 L = normalize(-LightDirection[i].xyz);
+        Lo += ComputePBR(normal, eyeVector, L, LightDiffuseColor[i].rgb);
+    }
     
+    float3 ambient = AmbientLightColor.rgb * BaseColor.rgb;
+    float3 finalColor = Lo + ambient + EmissiveColor.rgb;
+
+    // ガンマ補正
+    finalColor = pow(finalColor, 1.0 / 2.2);
+
+    vout.Color = float4(finalColor, 1.0);
+
     // テクスチャ座標
     vout.TexCoord = vin.TexCoord;
 

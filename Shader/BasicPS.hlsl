@@ -9,8 +9,8 @@ float4 main(Varyings pin) : SV_Target
     // 色
     float4 color = pin.Color;
 
-    // テクスチャ（MaterialParams.y = UseTexture）
-    if (MaterialParams.y) color *= Texture.Sample(Sampler, pin.TexCoord);
+    // テクスチャ（Flags 1bit UseBaseColorTexture）
+    if (Flags & 0x1) color *= Texture.Sample(Sampler, pin.TexCoord);
 
     return color;
 }

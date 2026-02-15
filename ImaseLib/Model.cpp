@@ -1,69 +1,112 @@
 #include "pch.h"
 #include "Model.h"
+#include "Imdl.h"
+#include "ChunkIO.h"
 
 using namespace DirectX;
 using namespace Imase;
 
 #include "DDSTextureLoader.h"
 
-// UTF-8 → UTF-16 変換
-static std::wstring StringToWString(const std::string& s)
+// --------------------------------------------------------------------------------------------- //
+// Imdl形式のローダー
+// --------------------------------------------------------------------------------------------- //
+
+// Imdlのロード関数
+static HRESULT LoadImdl
+(
+	const std::wstring& filename,
+	std::vector<TextureEntry>& textures,
+	std::vector<MaterialInfo>& materials,
+	std::vector<MeshInfo>& meshes,
+	std::vector<VertexPositionNormalTextureTangent>& vertices,
+	std::vector<uint32_t>& indices
+)
 {
-	if (s.empty()) return L"";
-
-	int size = MultiByteToWideChar(
-		CP_UTF8,                // 入力はUTF-8
-		0,
-		s.data(),
-		static_cast<int>(s.size()),
-		nullptr,
-		0
-	);
-
-	std::wstring result(size, 0);
-
-	MultiByteToWideChar(
-		CP_UTF8,
-		0,
-		s.data(),
-		static_cast<int>(s.size()),
-		&result[0],
-		size
-	);
-
-	return result;
-}
-
-// 拡張子をddsに変更する関数
-static std::string ChangeExtPngToDds(const std::string& filename)
-{
-	std::string result = filename;
-
-	// 最後の '.' を探す
-	size_t pos = result.find_last_of('.');
-	if (pos == std::string::npos)
+	// ファイルオープン
+	std::ifstream ifs(filename, std::ios::binary);
+	if (!ifs.is_open())
 	{
-		// 拡張子なし → .dds を追加
-		return result + ".dds";
+		return E_FAIL;
 	}
 
-	// 拡張子を置き換え
-	result.replace(pos, std::string::npos, ".dds");
+	// ヘッダ
+	FileHeader header{};
+	if (!ifs.read(reinterpret_cast<char*>(&header), sizeof(header)))
+		return E_FAIL;
 
-	return result;
+	if (header.magic != 'IMDL')
+	{
+		return E_FAIL;
+	}
+
+	// チャンク読み込み
+	for (uint32_t i = 0; i < header.chunkCount; ++i)
+	{
+		ChunkIO::ChunkHeader chunkHeader;
+		std::vector<uint8_t> buffer;
+		if (!ChunkIO::ReadChunk(ifs, chunkHeader, buffer))
+			return E_FAIL;
+
+		switch (chunkHeader.type)
+		{
+		case CHUNK_TEXTURE:
+		{
+			const uint8_t* ptr = buffer.data();
+			uint32_t texCount = *(const uint32_t*)ptr;
+			ptr += sizeof(uint32_t);
+
+			textures.resize(texCount);
+
+			for (uint32_t t = 0; t < texCount; ++t)
+			{
+				textures[t].type = static_cast<TextureType>(*(const uint32_t*)ptr); ptr += sizeof(uint32_t);
+				uint32_t dataSize = *(const uint32_t*)ptr; ptr += sizeof(uint32_t);
+
+				textures[t].data.resize(dataSize);
+				memcpy(textures[t].data.data(), ptr, dataSize);
+				ptr += dataSize;
+			}
+			break;
+		}
+		case CHUNK_MATERIAL:
+		{
+			size_t matCount = buffer.size() / sizeof(MaterialInfo);
+			materials.resize(matCount);
+			memcpy(materials.data(), buffer.data(), buffer.size());
+			break;
+		}
+		case CHUNK_MESH:
+		{
+			size_t meshCount = buffer.size() / sizeof(MeshInfo);
+			meshes.resize(meshCount);
+			memcpy(meshes.data(), buffer.data(), buffer.size());
+			break;
+		}
+		case CHUNK_VERTEX:
+		{
+			size_t vertCount = buffer.size() / sizeof(VertexPositionNormalTextureTangent);
+			vertices.resize(vertCount);
+			memcpy(vertices.data(), buffer.data(), buffer.size());
+			break;
+		}
+		case CHUNK_INDEX:
+		{
+			size_t idxCount = buffer.size() / sizeof(uint32_t);
+			indices.resize(idxCount);
+			memcpy(indices.data(), buffer.data(), buffer.size());
+			break;
+		}
+		default:
+			std::cerr << "Unknown chunk type: " << chunkHeader.type << "\n";
+			break;
+		}
+	}
+
+	return S_OK;
 }
 
-// テクスチャロード関数
-Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Imase::Model::LoadTexture(ID3D11Device* device, const std::wstring& path)
-{
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-
-	DX::ThrowIfFailed(
-		CreateDDSTextureFromFile(device, path.c_str(), nullptr, srv.GetAddressOf())
-	);
-
-	return srv;
-}
+// --------------------------------------------------------------------------------------------- //
 
 // コンストラクタ
 Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
@@ -75,7 +118,7 @@ Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_BACK;
-		desc.FrontCounterClockwise = FALSE;
+		desc.FrontCounterClockwise = TRUE;	// 反時計回りが表（CCW）
 		desc.DepthBias = 0;
 		desc.DepthBiasClamp = 0.0f;
 		desc.SlopeScaledDepthBias = 0.0f;
@@ -124,180 +167,65 @@ Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 	}
 }
 
-// フルパスからディレクトリ部分を取得する
-static std::wstring GetDirectoryFromPath(const std::wstring& fullPath)
+// モデルデータ作成関数
+std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect)
 {
-	// 最後の / または \ を探す
-	size_t pos = fullPath.find_last_of(L"/\\");
+	std::vector<TextureEntry> textures;
+	std::vector<MaterialInfo> materials;
+	std::vector<MeshInfo> meshes;
+	std::vector<VertexPositionNormalTextureTangent> vertices;
+	std::vector<uint32_t> indices;
 
-	if (pos == std::wstring::npos)
+	// IMDLファイルのロード
+	HRESULT hr = LoadImdl(fname, textures, materials, meshes, vertices, indices);
+	if (hr == E_FAIL)
 	{
-		// ディレクトリなし
-		return L"";
+		OutputDebugString(L"Failed to load IMDL file.\n");
 	}
 
-	// 区切り文字を含めたディレクトリ部分を返す
-	return fullPath.substr(0, pos + 1);
-}
-
-// モデルデータ作成関数
-std::unique_ptr<Imase::Model> Imase::Model::CreateModel(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect)
-{
-	std::vector<uint8_t> data = DX::ReadData(fname.c_str());
-	return CreateModel(device, data.data(), pEffect, GetDirectoryFromPath(fname));
-}
-
-// モデルデータ作成関数
-std::unique_ptr<Imase::Model>  Imase::Model::CreateModel
-(
-	ID3D11Device* device,
-	const uint8_t* meshData,
-	Imase::Effect* pEffect,
-	std::wstring path
-)
-{
 	auto model = std::make_unique<Model>(device, pEffect);
-	auto& textures = model->m_textures;
 
-	size_t usedSize = 0;
+	// エフェクトにテクスチャのシェダーリソースを作成して登録
+	model->GetEffect()->RegisterTextures(device, textures);
 
-	// テクスチャ数
-	const uint32_t* texture_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-	usedSize += sizeof(uint32_t);
-
-	for (uint32_t i = 0; i < *texture_cnt; i++)
-	{
-		// テクスチャファイル名の文字数
-		const uint32_t* nName = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-		usedSize += sizeof(uint32_t);
-
-		// テクスチャファイル名
-		const char* texName = reinterpret_cast<const char*>(meshData + usedSize);
-		usedSize += (*nName);
-
-		std::string str;
-		str.assign(texName, *nName);
-
-		// 拡張子をddsに変更
-		str = ChangeExtPngToDds(str);
-
-		// UTF-8 → UTF-16 変換
-		std::wstring name = StringToWString(str);
-
-		// テクスチャをロード
-		std::wstring fullPath = path + name;
-
-		// テクスチャハンドルを登録
-		textures.push_back(LoadTexture(device, fullPath));
-	}
-
-	// マテリアル名の数
-	const uint32_t* materialNam_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-	usedSize += sizeof(uint32_t);
-	model->m_materialNames.resize(*materialNam_cnt);
-
-	for (uint32_t i = 0; i < (*materialNam_cnt); i++)
-	{
-		const uint32_t* len = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-		usedSize += sizeof(uint32_t);
-		const char* materialName = reinterpret_cast<const char*>(meshData + usedSize);
-		usedSize += (*len);
-		std::string str;
-		str.assign(materialName, *len);
-		model->m_materialNames[i]= StringToWString(str);
-	}
-
-	// マテリアル名→インデックスの検索用テーブルを作成
-	for (uint32_t i = 0; i < model->m_materialNames.size(); i++)
-	{
-		model->m_materialIndexMap[model->m_materialNames[i]] = i;
-	}
-
-	// マテリアル数
-	const uint32_t* material_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-	usedSize += sizeof(uint32_t);
-	model->m_materials.reserve(*material_cnt);
-
-	struct MaterialData
-	{
-		DirectX::XMFLOAT3 ambientColor;     // アンビエント色（使用しない）
-		DirectX::XMFLOAT3 diffuseColor;     // ディフューズ色
-		DirectX::XMFLOAT3 specularColor;    // スペキュラー色
-		float specularPower;                // スペキュラーパワー
-		DirectX::XMFLOAT3 emissiveColor;    // エミッシブ色
-		int32_t textureIndex_BaseColor;     // テクスチャインデックス（ベースカラー）
-		int32_t textureIndex_NormalMap;     // テクスチャインデックス（法線マップ）
-	};
-
-	// マテリアル
-	for (uint32_t i = 0; i < *material_cnt; i++)
-	{
-		MaterialData temp;
-		std::memcpy(&temp, meshData + usedSize, sizeof(MaterialData));
-
-		Imase::Material m = {};
-		m.diffuseColor  = { temp.diffuseColor.x,  temp.diffuseColor.y,  temp.diffuseColor.z,  1.0f };
-		m.emissiveColor = { temp.emissiveColor.x, temp.emissiveColor.y, temp.emissiveColor.z, 1.0f };
-		m.specularColor = { temp.specularColor.x, temp.specularColor.y, temp.specularColor.z, 1.0f };
-		m.specularPower = temp.specularPower;
-		if (temp.textureIndex_BaseColor >= 0) m.pBaseColorSRV = textures[temp.textureIndex_BaseColor].Get();
-		if (temp.textureIndex_NormalMap >= 0) m.pNormalMapSRV = textures[temp.textureIndex_NormalMap].Get();
-		model->m_materials.emplace_back(m);
-
-		usedSize += sizeof(MaterialData);
-	}
+	// エフェクトにマテリアルを登録
+	model->GetEffect()->RegisterMaterials(materials);
 
 	// メッシュ情報数
-	const uint32_t* mesh_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-	model->m_meshes.reserve(*mesh_cnt);
-	usedSize += sizeof(uint32_t);
-
-	// メッシュ情報
-	for (uint32_t i = 0; i < *mesh_cnt; i++)
+	for (size_t i = 0; i < meshes.size(); i++)
 	{
-		Mesh temp;
-		std::memcpy(&temp, meshData + usedSize, sizeof(Mesh));
-		model->m_meshes.emplace_back(temp);
-		usedSize += sizeof(Mesh);
-	}
-
-	// インデックスバッファ作成
-	{
-		const uint32_t* index_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-		usedSize += sizeof(uint32_t);
-
-		// インデックス頂点バッファの作成
-		D3D11_BUFFER_DESC desc = {};
-		desc.ByteWidth = sizeof(uint16_t) * (*index_cnt);
-		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-		D3D11_SUBRESOURCE_DATA data = {};
-		data.pSysMem = meshData + usedSize;
-
-		DX::ThrowIfFailed(
-			device->CreateBuffer(&desc, &data, model->m_indexBuffer.ReleaseAndGetAddressOf())
-		);
-		usedSize += sizeof(uint16_t) * (*index_cnt);
+		model->m_meshes.emplace_back(meshes[i]);
 	}
 
 	// 頂点バッファの作成
 	{
-		const uint32_t* vertex_cnt = reinterpret_cast<const uint32_t*>(meshData + usedSize);
-		usedSize += sizeof(uint32_t);
-
 		D3D11_BUFFER_DESC desc = {};
-		desc.ByteWidth = sizeof(VertexPositionNormalTextureTangent) * (*vertex_cnt);
+		desc.ByteWidth = sizeof(VertexPositionNormalTextureTangent) * vertices.size();
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 		D3D11_SUBRESOURCE_DATA data = {};
-		data.pSysMem = meshData + usedSize;
+		data.pSysMem = vertices.data();
 
 		DX::ThrowIfFailed(
 			device->CreateBuffer(&desc, &data, model->m_vertexBuffer.ReleaseAndGetAddressOf())
 		);
-		usedSize += sizeof(VertexPositionNormalTextureTangent) * (*vertex_cnt);
+	}
+
+	// インデックスバッファ作成
+	{
+		// インデックス頂点バッファの作成
+		D3D11_BUFFER_DESC desc = {};
+		desc.ByteWidth = sizeof(uint32_t) * indices.size();
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+		D3D11_SUBRESOURCE_DATA data = {};
+		data.pSysMem = indices.data();
+
+		DX::ThrowIfFailed(
+			device->CreateBuffer(&desc, &data, model->m_indexBuffer.ReleaseAndGetAddressOf())
+		);
 	}
 
 	return model;
@@ -317,12 +245,12 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 
 	// 頂点バッファの設定
 	ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
-	UINT stride = sizeof(Imase::VertexPositionNormalTextureTangent);
+	UINT stride = sizeof(VertexPositionNormalTextureTangent);
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 
 	// インデックスバッファの設定
-	context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 	// トポロジーの設定
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -330,51 +258,10 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 	// メッシュ描画
 	for (auto& mesh : m_meshes)
 	{
-		m_pEffect->SetMaterial(m_materials[mesh.materialIndex]);
+		m_pEffect->SetMaterialIndex(mesh.materialIndex);
 		m_pEffect->SetWorld(world);
 		m_pEffect->Apply(context);
 
 		context->DrawIndexed(mesh.primCount * 3, mesh.startIndex, 0);
 	}
 }
-
-// 指定マテリアルを取得する関数
-Imase::Material* Imase::Model::GetMaterialByName(const std::wstring& name)
-{
-	auto it = m_materialIndexMap.find(name);
-	if (it == m_materialIndexMap.end()) return nullptr;
-	return &m_materials[it->second];
-}
-
-// 指定マテリアルのディフューズ色を設定する関数
-void Imase::Model::SetDiffuseColorByName(const std::wstring& name, const DirectX::XMVECTOR& diffuseColor)
-{
-	auto it = m_materialIndexMap.find(name);
-	if (it == m_materialIndexMap.end()) return;
-	XMStoreFloat4(&m_materials[it->second].diffuseColor, diffuseColor);
-}
-
-// 指定マテリアルのエミッシブ色を設定する関数
-void Imase::Model::SetEmissiveColorByName(const std::wstring& name, const DirectX::XMVECTOR& emissiveColor)
-{
-	auto it = m_materialIndexMap.find(name);
-	if (it == m_materialIndexMap.end()) return;
-	XMStoreFloat4(&m_materials[it->second].emissiveColor, emissiveColor);
-}
-
-// 指定マテリアルのスペキュラ色を設定する関数
-void Imase::Model::SetSpecularColorByName(const std::wstring& name, const DirectX::XMVECTOR& specularColor)
-{
-	auto it = m_materialIndexMap.find(name);
-	if (it == m_materialIndexMap.end()) return;
-	XMStoreFloat4(&m_materials[it->second].specularColor, specularColor);
-}
-
-// 指定マテリアルのスペキュラパワーを設定する関数
-void Imase::Model::SetSpecularPowerByName(const std::wstring& name, float specularPower)
-{
-	auto it = m_materialIndexMap.find(name);
-	if (it == m_materialIndexMap.end()) return;
-	m_materials[it->second].specularPower = specularPower;
-}
-

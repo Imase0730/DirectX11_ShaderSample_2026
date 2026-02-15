@@ -20,7 +20,9 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     , m_view{}
     , m_projection{}
     , m_ambientLightColor{}
-    , m_material{}
+    , m_textures{}
+    , m_materials{}
+    , m_materialIndex{}
     , m_lightStates{}
 {
     // ----- サンプラーステート ----- //
@@ -41,6 +43,7 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     // 定数バッファ作成
     CreatePerFrameCB(device);
     CreatePerObjectCB(device);
+    CreatePerMaterialCB(device);
 
     // ディフォルトライトの設定
     EnableDefaultLighting();
@@ -85,7 +88,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     if (m_dirtyFlags & EffectDirtyFlags::Material)
     {
         m_dirtyFlags &= ~EffectDirtyFlags::Material;
-        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b1;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b2;
     }
 
     // 変更があれば定数バッファを更新
@@ -95,22 +98,30 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
         UpdatePerObjectCB(context);
         m_dirtyFlags &= ~EffectDirtyFlags::ConstantBuffer_b1;
     }
+ 
+    // 変更があれば定数バッファを更新
+    if (m_dirtyFlags & EffectDirtyFlags::ConstantBuffer_b2)
+    {
+        // 定数バッファを更新（マテリアル）
+        UpdatePerMaterialCB(context);
+        m_dirtyFlags &= ~EffectDirtyFlags::ConstantBuffer_b2;
+    }
 
     // シェーダーをバインド
     m_pShader->Bind(context);
 
     // 定数バッファを設定
-    ID3D11Buffer* cbBuffers[] = { m_perFrameCB.Get(), m_perObjectCB.Get()};
-    context->VSSetConstantBuffers(0, 2, cbBuffers);
-    context->PSSetConstantBuffers(0, 2, cbBuffers);
+    ID3D11Buffer* cbBuffers[] = { m_perFrameCB.Get(), m_perObjectCB.Get(), m_perMaterialCB.Get() };
+    context->VSSetConstantBuffers(0, 3, cbBuffers);
+    context->PSSetConstantBuffers(0, 3, cbBuffers);
 
     // サンプラーステートの設定
     context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
     // ベースカラー
-    if (m_material.pBaseColorSRV)
+    if (m_materials[m_materialIndex].baseColorTexIndex >= 0)
     {
-        ID3D11ShaderResourceView* srv[] = { m_material.pBaseColorSRV };
+        ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].baseColorTexIndex].Get() };
         context->PSSetShaderResources(0, 1, srv);
     }
     else
@@ -120,9 +131,9 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     }
 
     // 法線マップ
-    if (m_material.pNormalMapSRV)
+    if (m_materials[m_materialIndex].normalTexIndex >= 0)
     {
-        ID3D11ShaderResourceView* srv[] = { m_material.pNormalMapSRV };
+        ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].normalTexIndex].Get() };
         context->PSSetShaderResources(1, 1, srv);
     }
     else
@@ -186,10 +197,35 @@ void Imase::Effect::SetAmbientLightColor(DirectX::XMVECTOR ambientColor)
     m_dirtyFlags |= EffectDirtyFlags::Light;
 }
 
-// マテリアルを設定する関数
-void Imase::Effect::SetMaterial(const Imase::Material& material)
+// テクスチャのシェダーリソースを作成して登録する関数
+void Imase::Effect::RegisterTextures(ID3D11Device* device, std::vector<TextureEntry>& textures)
 {
-    m_material = material;
+    m_textures.resize(textures.size());
+    for (size_t i = 0; i < textures.size(); i++)
+    {
+        DX::ThrowIfFailed(
+            CreateDDSTextureFromMemory(
+                device,
+                textures[i].data.data(), textures[i].data.size(),
+                nullptr,
+                m_textures[i].ReleaseAndGetAddressOf())
+        );
+    }
+}
+
+// マテリアルを登録する関数
+void Imase::Effect::RegisterMaterials(const std::vector<MaterialInfo>& materials)
+{
+    for (size_t i = 0; i < materials.size(); i++)
+    {
+        m_materials.emplace_back(materials[i]);
+    }
+}
+
+// マテリアルを設定する関数
+void Imase::Effect::SetMaterialIndex(uint32_t materialIndex)
+{
+    m_materialIndex = materialIndex;
     m_dirtyFlags |= EffectDirtyFlags::Material;
 }
 
@@ -258,6 +294,20 @@ void Imase::Effect::CreatePerObjectCB(ID3D11Device* device)
     );
 }
 
+// 定数バッファの作成関数（マテリアル）
+void Imase::Effect::CreatePerMaterialCB(ID3D11Device* device)
+{
+    // 定数バッファの作成
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = sizeof(Imase::PerMaterialCB);
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    DX::ThrowIfFailed(
+        device->CreateBuffer(&desc, nullptr, m_perMaterialCB.ReleaseAndGetAddressOf())
+    );
+}
+
 // 定数バッファ更新関数（フレーム更新時）
 void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
 {
@@ -275,6 +325,7 @@ void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
 
     // グローバルアンビエント色
     cb.AmbientLightColor = m_ambientLightColor;
+    cb.AmbientLightColor = XMFLOAT4{0.0f,0.0f,0.0f,1.0f};
 
     // ライト
     for (int i = 0; i < LIGHT_MAX; i++)
@@ -308,14 +359,6 @@ void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context)
 {
     Imase::PerObjectCB cb = {};
 
-    // マテリアル
-    cb.DiffuseColor = m_material.diffuseColor;
-    cb.EmissiveColor = m_material.emissiveColor;
-    cb.SpecularColor = m_material.specularColor;
-    cb.MaterialParams.x = m_material.specularPower;
-    cb.MaterialParams.y = m_material.pBaseColorSRV ? 1.0f : 0.0f;
-    cb.MaterialParams.z = m_material.pNormalMapSRV ? 1.0f : 0.0f;
-
     // ワールド行列
     cb.World = m_world;
     // ワールド行列の逆転置行列
@@ -327,6 +370,28 @@ void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context)
     );
     memcpy(mapped.pData, &cb, sizeof(cb));
     context->Unmap(m_perObjectCB.Get(), 0);
+}
+
+// 定数バッファ更新関数（マテリアル）
+void Imase::Effect::UpdatePerMaterialCB(ID3D11DeviceContext* context)
+{
+    Imase::PerMaterialCB cb = {};
+
+    const MaterialInfo& m = m_materials[m_materialIndex];
+
+    cb.BaseColor = m.diffuseColor;
+    cb.EmissiveColor = m.emissiveColor;
+    cb.Metallic = m.metallicFactor;
+    cb.Roughness = m.roughnessFactor;
+    if (m.baseColorTexIndex >= 0) cb.Flags |= FLAG_BASECOLOR_TEX;
+    if (m.normalTexIndex >= 0) cb.Flags |= FLAG_NORMALMAP_TEX;
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    DX::ThrowIfFailed(
+        context->Map(m_perMaterialCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
+    );
+    memcpy(mapped.pData, &cb, sizeof(cb));
+    context->Unmap(m_perMaterialCB.Get(), 0);
 }
 
 // ライトの番号を検証する関数

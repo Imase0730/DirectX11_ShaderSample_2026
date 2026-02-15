@@ -42,7 +42,7 @@ void Game::Initialize(HWND window, int width, int height)
     m_debugCamera = std::make_unique<Imase::DebugCamera>(width, height);
 
     // ライトの方向の初期化
-    m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, -1.0f);
+    m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, 0.0f);
     m_lightDirection.Normalize();
 
 }
@@ -108,8 +108,8 @@ void Game::Render()
     //world = SimpleMath::Matrix::Identity;
 
     //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
-    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
+    //SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+    //m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
 
     //m_model->UpdateEffect([&](Imase::Effect* effect)
     //    {
@@ -124,9 +124,13 @@ void Game::Render()
     // ビュー行列とプロジェクション行列を設定
     Imase::Effect* effect = m_model->GetEffect();
     effect->SetViewProjection(view, m_proj);
+
+ /*   effect->SetAmbientLightColor(Colors::White);*/
+
     //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, 0));
-    effect->SetLightDirection(0, m_lightDirection);
-    //m_effect->SetLightEnabled(0, true);
+    //effect->SetLightDirection(0, m_lightDirection);
+    //effect->SetLightDiffuseColor(0, Colors::White);
+    ////m_effect->SetLightEnabled(0, true);
     //m_effect->SetLightEnabled(1, false);
     //m_effect->SetLightEnabled(2, false);
     //m_effect->SetLightDiffuseColor(2, Colors::Black);
@@ -138,6 +142,14 @@ void Game::Render()
 
     // モデルの描画
     m_model->Draw(context, world);
+
+    //m_spriteBatch->Begin();
+
+    //ID3D11ShaderResourceView* srv = m_model->m_materials[1].pBaseColorSRV;
+
+    //m_spriteBatch->Draw(srv, SimpleMath::Vector2(0, 0));
+
+    //m_spriteBatch->End();
 
     // ------------------------------------------------------- //
 
@@ -242,14 +254,14 @@ void Game::CreateDeviceDependentResources()
 
     // シェーダーの作成
     m_shader = std::make_unique<Imase::BasicShader>(device);
-    m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
+    //m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
 
     // モデルの作成
-    m_model = Imase::Model::CreateModel(device, L"Resources/Models/Dice.mdl", m_effect.get());
-    //m_model = Imase::Model::CreateModel(device, L"Resources/Models/Shpere.mdl", m_effect.get());
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
+
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

@@ -54,6 +54,12 @@
     <ClInclude Include="ImaseLib\NormalMapShader.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\Imdl.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\ChunkIO.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -105,21 +111,12 @@
     <None Include="Shader\Common.hlsli">
       <Filter>Shader</Filter>
     </None>
-    <None Include="Shader\NormalMap.hlsli">
-      <Filter>Shader</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicPS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\NormalMapPS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\NormalMapVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

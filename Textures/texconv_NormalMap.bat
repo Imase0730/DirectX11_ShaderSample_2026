@@ -39,7 +39,7 @@ REM 変換対象のフルパス
 set "FILE=%~1"
 
 echo Converting: "!FILE!"
-"%TEXCONV%" -y -f BC5_UNORM -inverty -reconstructz -o "%OUTDIR%" "!FILE!"
+"%TEXCONV%" -y -f BC5_UNORM -inverty -o "%OUTDIR%" "!FILE!"
 echo ERRORLEVEL = !errorlevel!
 echo.
 

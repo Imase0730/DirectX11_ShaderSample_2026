@@ -182,9 +182,11 @@
     <ClInclude Include="DirectXTK_Utilities\DebugDraw.h" />
     <ClInclude Include="DirectXTK_Utilities\ReadData.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="ImaseLib\ChunkIO.h" />
     <ClInclude Include="ImaseLib\DebugCamera.h" />
     <ClInclude Include="ImaseLib\Effect.h" />
     <ClInclude Include="ImaseLib\GridFloor.h" />
+    <ClInclude Include="ImaseLib\Imdl.h" />
     <ClInclude Include="ImaseLib\NormalMapShader.h" />
     <ClInclude Include="ImaseLib\ShaderBase.h" />
     <ClInclude Include="ImaseLib\Model.h" />
@@ -226,7 +228,6 @@
     <None Include="packages.config" />
     <None Include="Shader\Common.hlsli" />
     <None Include="Shader\Basic.hlsli" />
-    <None Include="Shader\NormalMap.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicPS.hlsl">
@@ -240,12 +241,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\NormalMapPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\NormalMapVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "ShaderBase.h"
+#include "Imdl.h"
 
 namespace Imase
 {
@@ -17,12 +18,20 @@ namespace Imase
     {
         constexpr uint32_t ConstantBuffer_b0 = 1 << 0;  // 定数バッファの役割（フレームで1回）
         constexpr uint32_t ConstantBuffer_b1 = 1 << 1;  // 定数バッファの役割（オブジェクト毎）
+        constexpr uint32_t ConstantBuffer_b2 = 1 << 2;  // 定数バッファの役割（マテリアル）
 
         constexpr uint32_t ViewProjection   = 1 << 2;   // b0
         constexpr uint32_t Light            = 1 << 3;   // b0
         constexpr uint32_t World            = 1 << 4;   // b1
-        constexpr uint32_t Material         = 1 << 5;   // b1
+        constexpr uint32_t Material         = 1 << 5;   // b2
     }
+
+    // マテリアル用フラグ
+    enum MaterialFlags
+    {
+        FLAG_BASECOLOR_TEX  = 1 << 0,   // ベースカラー用テクスチャ使用有無
+        FLAG_NORMALMAP_TEX  = 1 << 1,   // 法線マップ用テクスチャ使用有無
+    };
 
     // ライトの最大数
     static constexpr int LIGHT_MAX = 3;
@@ -45,25 +54,21 @@ namespace Imase
     // オブジェクト毎に更新（b1）
     struct PerObjectCB
     {
-        DirectX::XMFLOAT4 DiffuseColor;
-        DirectX::XMFLOAT4 EmissiveColor;
-        DirectX::XMFLOAT4 SpecularColor;
-        DirectX::XMFLOAT4 MaterialParams;   // x = SpecularPower, y = UseTexture, z = UseNormalMap
-
         DirectX::XMMATRIX World;
         DirectX::XMMATRIX WorldInverseTranspose;
     };
 
-    // マテリアル
-    struct Material
+    // マテリアル（b2）
+    struct PerMaterialCB
     {
-        DirectX::XMFLOAT4 diffuseColor;     // ディフューズ色
-        DirectX::XMFLOAT4 emissiveColor;    // エミッシブ色
-        DirectX::XMFLOAT4 specularColor;    // スペキュラー色
-        float specularPower;                // スペキュラーパワー
+        DirectX::XMFLOAT4 BaseColor;
 
-        ID3D11ShaderResourceView* pBaseColorSRV = nullptr;   // ベースカラー
-        ID3D11ShaderResourceView* pNormalMapSRV = nullptr;   // 法線マップ
+        DirectX::XMFLOAT3 EmissiveColor;
+        float             Metallic;
+
+        float             Roughness;
+        uint32_t          Flags;         // 1bit:UseBaseColorTexture 2bit:UseNormalTexture
+        float             padding[2];
     };
 
     // ライト
@@ -100,8 +105,14 @@ namespace Imase
         // プロジェクション行列
         DirectX::XMMATRIX m_projection;
 
-        // マテリアル
-        Material m_material;
+        // テクスチャハンドル
+        std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
+
+        // マテリアル情報
+        std::vector<Imase::MaterialInfo> m_materials;
+
+        // マテリアルインデックス
+        uint32_t m_materialIndex;
 
         // グローバルアンビエント色
         DirectX::XMFLOAT4 m_ambientLightColor;
@@ -114,6 +125,9 @@ namespace Imase
 
         // 定数バッファ（オブジェクト毎に更新用）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_perObjectCB;
+
+        // 定数バッファ（マテリアル更新用）
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_perMaterialCB;
 
         // サンプラーステート
         Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
@@ -150,8 +164,14 @@ namespace Imase
         // グローバルアンビエント色を設定する関数
         void SetAmbientLightColor(DirectX::XMVECTOR ambientColor);
 
+        // テクスチャのシェダーリソースを作成して登録する関数
+        void RegisterTextures(ID3D11Device* device, std::vector<TextureEntry>& textures);
+
+        // マテリアルを登録する関数
+        void RegisterMaterials(const std::vector<MaterialInfo>& materials);
+
         // マテリアルを設定する関数
-        void SetMaterial(const Imase::Material& material);
+        void SetMaterialIndex(uint32_t materialIndex);
 
         // ディフォルトライトの設定関数
         void EnableDefaultLighting();
@@ -161,14 +181,20 @@ namespace Imase
         // 定数バッファ作成関数（フレーム更新時）
         void CreatePerFrameCB(ID3D11Device* device);
 
-        // 定数バッファ更新関数（フレーム更新時）
-        void UpdatePerFrameCB(ID3D11DeviceContext* context);
-
         // 定数バッファ作成関数（オブジェクト毎）
         void CreatePerObjectCB(ID3D11Device* device);
 
+        // 定数バッファ作成関数（マテリアル）
+        void CreatePerMaterialCB(ID3D11Device* device);
+
+        // 定数バッファ更新関数（フレーム更新時）
+        void UpdatePerFrameCB(ID3D11DeviceContext* context);
+
         // 定数バッファ更新関数（オブジェクト毎）
         void UpdatePerObjectCB(ID3D11DeviceContext* context);
+
+        // 定数バッファ更新関数（マテリアル）
+        void UpdatePerMaterialCB(ID3D11DeviceContext* context);
 
         // ライトの番号を検証する関数
         void ValidateLightIndex(int lightNo);
