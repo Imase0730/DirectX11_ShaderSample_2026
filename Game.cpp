@@ -125,12 +125,12 @@ void Game::Render()
     Imase::Effect* effect = m_model->GetEffect();
     effect->SetViewProjection(view, m_proj);
 
-//    effect->SetAmbientLightColor(Colors::White);
+    //effect->SetAmbientLightColor(Colors::Black);
 
     //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
     //effect->SetLightDirection(0, m_lightDirection);
-    //effect->SetLightDiffuseColor(0, Colors::White);
-    //////m_effect->SetLightEnabled(0, true);
+    ////effect->SetLightDiffuseColor(0, Colors::White);
+    //m_effect->SetLightEnabled(0, false);
     //m_effect->SetLightEnabled(1, false);
     //m_effect->SetLightEnabled(2, false);
     //m_effect->SetLightDiffuseColor(2, Colors::Black);
@@ -254,10 +254,10 @@ void Game::CreateDeviceDependentResources()
 
     // シェーダーの作成
     m_shader = std::make_unique<Imase::BasicShader>(device);
-    //m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
+    m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
 
     // モデルの作成
     m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());

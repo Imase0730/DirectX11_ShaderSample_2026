@@ -1,9 +1,9 @@
 #include "Common.hlsli"
 #include "NormalMap.hlsli"
 
-Varyings main(VSInput vin)
+VSOutput main(VSInput vin)
 {
-    Varyings vout;
+    VSOutput vout;
 
     // À•W•ÏŠ·
     float4 worldPos = mul(World, float4(vin.Position, 1.0f));

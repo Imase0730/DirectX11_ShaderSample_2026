@@ -1,3 +1,11 @@
+//--------------------------------------------------------------------------------------
+// File: Imdl.h
+//
+// モデルデータ共通ヘッダ（変換コンバーターと読み込み側共通）
+//
+// Date: 2026.2.16
+// Author: Hideyasu Imase
+//--------------------------------------------------------------------------------------
 #pragma once
 
 #include <vector>
@@ -61,6 +69,7 @@ namespace Imase
         CHUNK_INDEX = 'INDX'
     };
 
+    // テクスチャタイプ
     enum class TextureType
     {
         BaseColor,
@@ -75,5 +84,4 @@ namespace Imase
         TextureType type;           // 種類
         std::vector<uint8_t> data;  // データ
     };
-
 }

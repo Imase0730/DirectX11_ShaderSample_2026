@@ -269,7 +269,7 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	// 頂点バッファの作成
 	{
 		D3D11_BUFFER_DESC desc = {};
-		desc.ByteWidth = sizeof(VertexPositionNormalTextureTangent) * vertices.size();
+		desc.ByteWidth = static_cast<UINT>(sizeof(VertexPositionNormalTextureTangent) * vertices.size());
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
@@ -285,7 +285,7 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	{
 		// インデックス頂点バッファの作成
 		D3D11_BUFFER_DESC desc = {};
-		desc.ByteWidth = sizeof(uint32_t) * indices.size();
+		desc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * indices.size());
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
