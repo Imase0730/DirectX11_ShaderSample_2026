@@ -116,16 +116,7 @@ void Game::Render()
     //        effect->SetLightDirection(m_lightDirection);
     //    }
     //);
-
-    //m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
-
-    // ------------------------------------------------------- //
-
-    // ビュー行列とプロジェクション行列を設定
-    Imase::Effect* effect = m_model->GetEffect();
-    effect->SetViewProjection(view, m_proj);
-
-    //effect->SetAmbientLightColor(Colors::Black);
+   //effect->SetAmbientLightColor(Colors::Black);
 
     //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
     //effect->SetLightDirection(0, m_lightDirection);
@@ -134,22 +125,40 @@ void Game::Render()
     //m_effect->SetLightEnabled(1, false);
     //m_effect->SetLightEnabled(2, false);
     //m_effect->SetLightDiffuseColor(2, Colors::Black);
-    effect->BeginFrame(context);
+
+    //m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
+
+    // ------------------------------------------------------- //
+    // モデル描画 
+    // ------------------------------------------------------- //
+
+    Imase::Effect* effect{};
 
     // ------------------------------------------------------- //
 
-    //m_model->SetDiffuseColorByName(L"Dice", Colors::Red);
+    // （フレームで頻繁に更新しない定数バッファを更新している）
+    // ビュー行列とプロジェクション行列を設定
+    effect = m_model_Basic->GetEffect();
+    effect->SetViewProjection(view, m_proj);
+    effect->BeginFrame(context);
 
     // モデルの描画
-    m_model->Draw(context, world);
+    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    world *= SimpleMath::Matrix::CreateTranslation(-2.0f, 0.0f, 0.0f);
+    m_model_Basic->Draw(context, world);
 
-    //m_spriteBatch->Begin();
+    // ------------------------------------------------------- //
 
-    //ID3D11ShaderResourceView* srv = m_model->m_materials[1].pBaseColorSRV;
+    // （フレームで頻繁に更新しない定数バッファを更新している）
+    // ビュー行列とプロジェクション行列を設定
+    effect = m_model_NormalMap->GetEffect();
+    effect->SetViewProjection(view, m_proj);
+    effect->BeginFrame(context);
 
-    //m_spriteBatch->Draw(srv, SimpleMath::Vector2(0, 0));
-
-    //m_spriteBatch->End();
+    // モデルの描画
+    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    world *= SimpleMath::Matrix::CreateTranslation(2.0f, 0.0f, 0.0f);
+    m_model_NormalMap->Draw(context, world);
 
     // ------------------------------------------------------- //
 
@@ -253,14 +262,16 @@ void Game::CreateDeviceDependentResources()
     // -------------------------------------------------------------------------------------- //
 
     // シェーダーの作成
-    m_shader = std::make_unique<Imase::BasicShader>(device);
-    m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
+    m_shader_Basic = std::make_unique<Imase::BasicShader>(device);
+    m_shader_NormalMap = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
+    m_effect_Basic = std::make_unique<Imase::Effect>(device, m_shader_Basic.get());
+    m_effect_NormalMap = std::make_unique<Imase::Effect>(device, m_shader_NormalMap.get());
 
     // モデルの作成
-    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
+    m_model_Basic = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect_Basic.get());
+    m_model_NormalMap = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect_NormalMap.get());
 
 }
 
