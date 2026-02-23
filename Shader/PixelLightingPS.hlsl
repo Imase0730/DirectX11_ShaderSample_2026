@@ -1,33 +1,13 @@
 #include "Common.hlsli"
-#include "NormalMap.hlsli"
+#include "PixelLighting.hlsli"
 
 Texture2D Texture : register(t0);
-Texture2D NormalMap : register(t1);
 SamplerState Sampler : register(s0);
 
 float4 main(VSOutput pin) : SV_Target
 {
-    // 法線マップサンプル　(法線マップが2チャンネル：BC5圧縮)
-    float2 xy = NormalMap.Sample(Sampler, pin.TexCoord).rg * 2.0f - 1.0f;
-    
-    // Z再構築
-    float z = sqrt(saturate(1.0f - dot(xy, xy)));
-
     // 法線
-    float3 N = normalize(float3(xy, z));
-    
-    float3 normal = normalize(pin.NormalWS);
-    float3 tangent = normalize(pin.TangentWS.xyz);
-
-    // 再直交化
-    tangent = normalize(tangent - normal * dot(normal, tangent));
-    float3 binormal = cross(normal, tangent) * pin.TangentWS.w;
-
-    // 接空間基底を並べて行列を作成（各ベクトルを「行」に配置）
-    float3x3 TBN = float3x3(tangent, binormal, normal);
-
-    // mul(ベクトル, 行列) とすることで、接空間(N)をワールド空間へ変換
-    N = normalize(mul(N, TBN));
+    float3 N = normalize(pin.NormalWS);
     
     // 視線ベクトル（ワールド空間）
     float3 V = normalize(EyePosition.xyz - pin.WorldPos);
@@ -37,13 +17,12 @@ float4 main(VSOutput pin) : SV_Target
     // テクスチャ色
     if (Flags & 0x1)
         albedo *= Texture.Sample(Sampler, pin.TexCoord);
-
-//    float3 diffuseColor = albedo.rgb * (1.0f - Metallic); // PBR用今はしない
+    
     float3 diffuseColor = albedo.rgb;
     // 金属は環境拡散は持たない
     float4 diffuse = AmbientLightColor * float4(diffuseColor, albedo.a);
     float4 specular = 0;
-    
+
     [unroll]
     for (int i = 0; i < 3; i++)
     {
@@ -73,6 +52,6 @@ float4 main(VSOutput pin) : SV_Target
     // 色
     float4 color = float4(EmissiveColor, 0.0f) + diffuse + specular;
     color.a = 1.0f;
-
+  
     return color;
 }

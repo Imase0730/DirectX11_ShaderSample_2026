@@ -23,6 +23,7 @@ namespace Imase
         float metallicFactor = 0.0f;                                    // 金属度 (0:非金属, 1:金属)
         float roughnessFactor = 1.0f;                                   // 粗さ (0:ツルツル, 1:粗い)
         DirectX::XMFLOAT3 emissiveColor = { 0.0f, 0.0f, 0.0f };         // 放射色
+        float emissiveStrength = 1.0f;                                  // 発光強度
 
         // -------------------
         // テクスチャインデックス (-1 = 無効)
@@ -33,12 +34,27 @@ namespace Imase
         int emissiveTexIndex = -1;    // Emissive テクスチャ
     };
 
-    // メッシュ情報
-    struct MeshInfo
+    // サブメッシュ情報
+    struct SubMeshInfo
     {
         uint32_t startIndex;        // スタートインデックス  
-        uint32_t primCount;         // プリミティブ数
+        uint32_t indexCount;        // インデックス数
         uint32_t materialIndex;     // マテリアルインデックス
+    };
+
+    // メッシュグループ情報
+    struct MeshGroupInfo
+    {
+        uint32_t subMeshStart;
+        uint32_t subMeshCount;
+    };
+
+    // ノード情報
+    struct NodeInfo
+    {
+        int32_t meshGroupIndex;
+        int32_t parentIndex;
+        DirectX::XMFLOAT4X4 localMatrix;
     };
 
     // 頂点情報
@@ -64,7 +80,9 @@ namespace Imase
     {
         CHUNK_TEXTURE = 'TXTR',
         CHUNK_MATERIAL = 'MTRL',
-        CHUNK_MESH = 'MESH',
+        CHUNK_SUBMESH = 'MESH',
+        CHUNK_MESHGROUP = 'MGRP',
+        CHUNK_NODE = 'NODE',
         CHUNK_VERTEX = 'VERT',
         CHUNK_INDEX = 'INDX'
     };

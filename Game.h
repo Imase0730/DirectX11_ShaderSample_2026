@@ -9,10 +9,11 @@
 
 #include "ImaseLib/DebugCamera.h"
 #include "ImaseLib/GridFloor.h"
-#include "ImaseLib/BasicShader.h"
 #include "ImaseLib/Effect.h"
 #include "ImaseLib/Model.h"
+#include "ImaseLib/BasicShader.h"
 #include "ImaseLib/NormalMapShader.h"
+#include "ImaseLib/PixelLightingShader.h"
 
 #include "SpriteBatch.h"
 
@@ -91,13 +92,19 @@ private:
     // シェーダー
     std::unique_ptr<Imase::BasicShader> m_shader_Basic;
     std::unique_ptr<Imase::NormalMapShader> m_shader_NormalMap;
+    std::unique_ptr<Imase::PixelLightingShader> m_shader_PixelLighting;
 
     // エフェクト
     std::unique_ptr<Imase::Effect> m_effect_Basic;
     std::unique_ptr<Imase::Effect> m_effect_NormalMap;
+    std::unique_ptr<Imase::Effect> m_effect_PixelLighting;
 
     // モデル
     std::unique_ptr<Imase::Model> m_model_Basic;
     std::unique_ptr<Imase::Model> m_model_NormalMap;
+    std::unique_ptr<Imase::Model> m_model_PixelLighting;
+
+    //
+    std::unique_ptr<DirectX::SpriteBatch> m_sp;
 
 };

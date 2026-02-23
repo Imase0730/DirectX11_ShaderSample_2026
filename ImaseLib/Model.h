@@ -14,7 +14,13 @@ namespace Imase
 		Imase::Effect* m_pEffect;
 
 		// メッシュ情報
-		std::vector<Imase::MeshInfo> m_meshes;
+		std::vector<Imase::SubMeshInfo> m_subMeshes;
+
+		// メッシュグループ情報
+		std::vector<Imase::MeshGroupInfo> m_meshGroups;
+
+		// ノード情報
+		std::vector<Imase::NodeInfo> m_nodes;
 
 		// 頂点バッファ
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;

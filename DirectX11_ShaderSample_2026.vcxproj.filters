@@ -63,6 +63,9 @@
     <ClInclude Include="ImaseLib\BinaryReader.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\PixelLightingShader.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -84,12 +87,6 @@
       <Filter>ImaseLib</Filter>
     </ClCompile>
     <ClCompile Include="ImaseLib\Model.cpp">
-      <Filter>ImaseLib</Filter>
-    </ClCompile>
-    <ClCompile Include="ImaseLib\BasicShader.cpp">
-      <Filter>ImaseLib</Filter>
-    </ClCompile>
-    <ClCompile Include="ImaseLib\NormalMapShader.cpp">
       <Filter>ImaseLib</Filter>
     </ClCompile>
   </ItemGroup>
@@ -117,6 +114,9 @@
     <None Include="Shader\NormalMap.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\PixelLighting.hlsli">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicVS.hlsl">
@@ -129,6 +129,12 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\NormalMapVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelLightingPS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelLightingVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

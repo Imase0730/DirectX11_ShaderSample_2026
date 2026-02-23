@@ -1,7 +1,7 @@
 //--------------------------------------------------------------------------------------
-// File: BasicShader.h
+// File: PixelLightingShader.h
 //
-// ベーシックシェーダー
+// ピクセルライティングシェーダー
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -12,13 +12,13 @@
 
 namespace Imase
 {
-	class NormalMapShader : public ShaderBase
+	class PixelLightingShader : public ShaderBase
 	{
     public:
 
         // コンストラクタ
-        NormalMapShader(ID3D11Device* device)
-            : ShaderBase(device, L"Resources/Shaders/NormalMapVS.cso", L"Resources/Shaders/NormalMapPS.cso")
+        PixelLightingShader(ID3D11Device* device)
+            : ShaderBase(device, L"Resources/Shaders/PixelLightingVS.cso", L"Resources/Shaders/PixelLightingPS.cso")
         {
         }
 

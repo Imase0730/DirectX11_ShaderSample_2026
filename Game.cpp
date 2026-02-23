@@ -144,6 +144,7 @@ void Game::Render()
 
     // モデルの描画
     world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    //world *= SimpleMath::Matrix::CreateScale(2.0f);
     world *= SimpleMath::Matrix::CreateTranslation(-2.0f, 0.0f, 0.0f);
     m_model_Basic->Draw(context, world);
 
@@ -157,8 +158,33 @@ void Game::Render()
 
     // モデルの描画
     world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    //world *= SimpleMath::Matrix::CreateScale(2.0f);
     world *= SimpleMath::Matrix::CreateTranslation(2.0f, 0.0f, 0.0f);
-    m_model_NormalMap->Draw(context, world);
+    //m_model_NormalMap->Draw(context, world);
+    
+    // ------------------------------------------------------- //
+    effect = m_model_PixelLighting->GetEffect();
+    effect->SetViewProjection(view, m_proj);
+    effect->BeginFrame(context);
+
+    // モデルの描画
+    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
+    //world *= SimpleMath::Matrix::CreateScale(2.0f);
+    world *= SimpleMath::Matrix::CreateTranslation(2.0f, 0.0f, 0.0f);
+    m_model_PixelLighting->Draw(context, world);
+
+
+
+
+
+    //effect = m_model_Basic->GetEffect();
+
+
+    //m_sp->Begin();
+
+    //m_sp->Draw(effect->GetTexture(1), SimpleMath::Vector2(0, 0));
+
+    //m_sp->End();
 
     // ------------------------------------------------------- //
 
@@ -264,15 +290,19 @@ void Game::CreateDeviceDependentResources()
     // シェーダーの作成
     m_shader_Basic = std::make_unique<Imase::BasicShader>(device);
     m_shader_NormalMap = std::make_unique<Imase::NormalMapShader>(device);
+    m_shader_PixelLighting = std::make_unique<Imase::PixelLightingShader>(device);
 
     // エフェクトの作成
     m_effect_Basic = std::make_unique<Imase::Effect>(device, m_shader_Basic.get());
     m_effect_NormalMap = std::make_unique<Imase::Effect>(device, m_shader_NormalMap.get());
+    m_effect_PixelLighting = std::make_unique<Imase::Effect>(device, m_shader_PixelLighting.get());
 
     // モデルの作成
-    m_model_Basic = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect_Basic.get());
-    m_model_NormalMap = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect_NormalMap.get());
+    m_model_Basic = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_Basic.get());
+    m_model_NormalMap = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_NormalMap.get());
+    m_model_PixelLighting = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_PixelLighting.get());
 
+    m_sp = std::make_unique<SpriteBatch>(context);
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

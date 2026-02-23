@@ -35,8 +35,14 @@ ColorPair ComputeLights(float3 eyeVector, float3 normal)
         {
             // スペキュラ（PBRのメタリックとラフネスから簡易方法で算出）
             float3 specular = lerp(float3(0.04f, 0.04f, 0.04f), BaseColor.rgb, Metallic);
-            float specularPower = 1000.0f * (1 - Roughness) * (1 - Roughness);
-            result.Specular += LightSpecularColor[i] * float4(specular, 1.0f) * pow(NdotH, specularPower);
+            
+            float perceptualRoughness = Roughness * Roughness;
+            float specularPower = lerp(2.0f, 256.0f, 1 - perceptualRoughness);
+
+            float spec = pow(NdotH, specularPower);
+            spec *= (1 - Roughness); // 強度減衰
+
+            result.Specular += LightSpecularColor[i] * float4(specular * spec * NdotL, 1.0f);
         }
     }
     return result;
@@ -55,7 +61,7 @@ VSOutput main(VSInput vin)
     float3 eyeVector = normalize(EyePosition.xyz - worldPos.xyz);
 
     // 法線ベクトルをワールド空間へ
-    float3 normal = normalize(mul((float3x3) WorldInverseTranspose, vin.Normal));
+    float3 normal = normalize(mul((float3x3)WorldInverseTranspose, vin.Normal));
 
     // ライトの計算
     ColorPair result = ComputeLights(eyeVector, normal);

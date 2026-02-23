@@ -59,12 +59,51 @@ static VertexPositionNormalTextureTangent DeserializeVertex(BinaryReader& reader
 	return v;
 }
 
-static MeshInfo DeserializeMesh(BinaryReader& reader)
+static SubMeshInfo DeserializeSubMesh(BinaryReader& reader)
 {
-	MeshInfo m{};
+	SubMeshInfo m{};
 	m.startIndex = reader.ReadUInt32();
-	m.primCount = reader.ReadUInt32();
+	m.indexCount = reader.ReadUInt32();
 	m.materialIndex = reader.ReadUInt32();
+	return m;
+}
+
+static MeshGroupInfo DeserializeMeshGroup(BinaryReader& reader)
+{
+	MeshGroupInfo m{};
+	m.subMeshStart = reader.ReadUInt32();
+	m.subMeshCount = reader.ReadUInt32();
+	return m;
+}
+
+static NodeInfo DeserializeNode(BinaryReader& reader)
+{
+	NodeInfo m{};
+
+	m.meshGroupIndex = reader.ReadInt32();
+
+	m.parentIndex = reader.ReadInt32();
+
+	m.localMatrix._11 = reader.ReadFloat();
+	m.localMatrix._12 = reader.ReadFloat();
+	m.localMatrix._13 = reader.ReadFloat();
+	m.localMatrix._14 = reader.ReadFloat();
+
+	m.localMatrix._21 = reader.ReadFloat();
+	m.localMatrix._22 = reader.ReadFloat();
+	m.localMatrix._23 = reader.ReadFloat();
+	m.localMatrix._24 = reader.ReadFloat();
+
+	m.localMatrix._31 = reader.ReadFloat();
+	m.localMatrix._32 = reader.ReadFloat();
+	m.localMatrix._33 = reader.ReadFloat();
+	m.localMatrix._34 = reader.ReadFloat();
+
+	m.localMatrix._41 = reader.ReadFloat();
+	m.localMatrix._42 = reader.ReadFloat();
+	m.localMatrix._43 = reader.ReadFloat();
+	m.localMatrix._44 = reader.ReadFloat();
+
 	return m;
 }
 
@@ -74,7 +113,9 @@ static HRESULT LoadImdl
 	const std::wstring& filename,
 	std::vector<TextureEntry>& textures,
 	std::vector<MaterialInfo>& materials,
-	std::vector<MeshInfo>& meshes,
+	std::vector<SubMeshInfo>& subMeshes,
+	std::vector<MeshGroupInfo>& meshGroups,
+	std::vector<NodeInfo>& nodes,
 	std::vector<VertexPositionNormalTextureTangent>& vertices,
 	std::vector<uint32_t>& indices
 )
@@ -90,7 +131,7 @@ static HRESULT LoadImdl
 	FileHeader header{};
 	ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
 
-	if (header.magic != 'IMDL')
+	if (header.magic != 0x4C444D49)	// 'IMDL'
 	{
 		return E_FAIL;
 	}
@@ -139,13 +180,35 @@ static HRESULT LoadImdl
 			break;
 		}
 
-		case CHUNK_MESH:		// MeshInfo
+		case CHUNK_SUBMESH:		// SubMeshInfo
 		{
 			uint32_t count = reader.ReadUInt32();
-			meshes.reserve(count);
+			subMeshes.reserve(count);
 			for (uint32_t m = 0; m < count; m++)
 			{
-				meshes.push_back(DeserializeMesh(reader));
+				subMeshes.push_back(DeserializeSubMesh(reader));
+			}
+			break;
+		}
+
+		case CHUNK_MESHGROUP:	// MeshGroupInfo
+		{
+			uint32_t count = reader.ReadUInt32();
+			meshGroups.reserve(count);
+			for (uint32_t m = 0; m < count; m++)
+			{
+				meshGroups.push_back(DeserializeMeshGroup(reader));
+			}
+			break;
+		}
+
+		case CHUNK_NODE:	// NodeInfo
+		{
+			uint32_t count = reader.ReadUInt32();
+			nodes.reserve(count);
+			for (uint32_t m = 0; m < count; m++)
+			{
+				nodes.push_back(DeserializeNode(reader));
 			}
 			break;
 		}
@@ -241,12 +304,14 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 {
 	std::vector<TextureEntry> textures;
 	std::vector<MaterialInfo> materials;
-	std::vector<MeshInfo> meshes;
+	std::vector<SubMeshInfo> subMeshes;
+	std::vector<MeshGroupInfo> meshGroups;
+	std::vector<NodeInfo> nodes;
 	std::vector<VertexPositionNormalTextureTangent> vertices;
 	std::vector<uint32_t> indices;
 
 	// IMDLファイルのロード
-	HRESULT hr = LoadImdl(fname, textures, materials, meshes, vertices, indices);
+	HRESULT hr = LoadImdl(fname, textures, materials, subMeshes, meshGroups, nodes, vertices, indices);
 	if (hr == E_FAIL)
 	{
 		OutputDebugString(L"Failed to load IMDL file.\n");
@@ -260,10 +325,22 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	// エフェクトにマテリアルを登録
 	model->GetEffect()->RegisterMaterials(materials);
 
-	// メッシュ情報数
-	for (size_t i = 0; i < meshes.size(); i++)
+	// サブメッシュを登録
+	for (auto& mesh : subMeshes)
 	{
-		model->m_meshes.emplace_back(meshes[i]);
+		model->m_subMeshes.emplace_back(mesh);
+	}
+
+	// メッシュグループを登録
+	for (auto& group : meshGroups)
+	{
+		model->m_meshGroups.emplace_back(group);
+	}
+
+	// ノードを登録
+	for (auto& node : nodes)
+	{
+		model->m_nodes.emplace_back(node);
 	}
 
 	// 頂点バッファの作成
@@ -324,13 +401,45 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 	// トポロジーの設定
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// メッシュ描画
-	for (auto& mesh : m_meshes)
-	{
-		m_pEffect->SetMaterialIndex(mesh.materialIndex);
-		m_pEffect->SetWorld(world);
-		m_pEffect->Apply(context);
+	// ----- メッシュ描画 ----- //
 
-		context->DrawIndexed(mesh.primCount * 3, mesh.startIndex, 0);
+	// 各ノードのワールド行列を作成
+	std::vector<XMMATRIX> worldMatrices(m_nodes.size());
+
+	for (size_t i = 0; i < m_nodes.size(); i++)
+	{
+		XMMATRIX local = XMLoadFloat4x4(&m_nodes[i].localMatrix);
+
+		if (m_nodes[i].parentIndex >= 0)
+		{
+			worldMatrices[i] = local * worldMatrices[m_nodes[i].parentIndex];
+		}
+		else
+		{
+			// ルートノード
+			worldMatrices[i] = local;
+		}
+	}
+
+	// ノード毎にメッシュを描画
+	for (size_t n = 0; n < m_nodes.size(); n++)
+	{
+		auto& node = m_nodes[n];
+
+		XMMATRIX nodeWorld = worldMatrices[n] * world;
+
+		uint32_t start = m_meshGroups[node.meshGroupIndex].subMeshStart;
+		uint32_t count = m_meshGroups[node.meshGroupIndex].subMeshCount;
+
+		for (uint32_t i = 0; i < count; i++)
+		{
+			SubMeshInfo& mesh = m_subMeshes[start + i];
+
+			m_pEffect->SetMaterialIndex(mesh.materialIndex);
+			m_pEffect->SetWorld(nodeWorld);
+			m_pEffect->Apply(context);
+
+			context->DrawIndexed(mesh.indexCount, mesh.startIndex, 0);
+		}
 	}
 }

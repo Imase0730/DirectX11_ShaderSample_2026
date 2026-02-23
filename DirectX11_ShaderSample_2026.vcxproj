@@ -189,6 +189,7 @@
     <ClInclude Include="ImaseLib\GridFloor.h" />
     <ClInclude Include="ImaseLib\Imdl.h" />
     <ClInclude Include="ImaseLib\NormalMapShader.h" />
+    <ClInclude Include="ImaseLib\PixelLightingShader.h" />
     <ClInclude Include="ImaseLib\ShaderBase.h" />
     <ClInclude Include="ImaseLib\Model.h" />
     <ClInclude Include="ImaseLib\BasicShader.h" />
@@ -203,8 +204,6 @@
     <ClCompile Include="ImaseLib\Effect.cpp" />
     <ClCompile Include="ImaseLib\GridFloor.cpp" />
     <ClCompile Include="ImaseLib\Model.cpp" />
-    <ClCompile Include="ImaseLib\BasicShader.cpp" />
-    <ClCompile Include="ImaseLib\NormalMapShader.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -230,6 +229,7 @@
     <None Include="Shader\Common.hlsli" />
     <None Include="Shader\Basic.hlsli" />
     <None Include="Shader\NormalMap.hlsli" />
+    <None Include="Shader\PixelLighting.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicPS.hlsl">
@@ -249,6 +249,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\NormalMapVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelLightingPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelLightingVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
