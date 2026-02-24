@@ -96,95 +96,18 @@ void Game::Render()
     // グリッドの床の描画
     m_gridFloor->Render(context, view, m_proj);
 
-    // -------------------------------------------------------------------------------------- //
-
-    SimpleMath::Matrix world;
-
-    //world = SimpleMath::Matrix::CreateTranslation(0, -1, 0)
-    //    * SimpleMath::Matrix::CreateRotationX(XMConvertToRadians(90))
-    //    * SimpleMath::Matrix::CreateTranslation(0, 1, 0);
-    //world *= SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
-
-    //world = SimpleMath::Matrix::Identity;
-
-    //world = SimpleMath::Matrix::CreateRotationY(XMConvertToRadians(45.0f));
-    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-    m_lightDirection = SimpleMath::Vector3::Transform(SimpleMath::Vector3(0,-1,-1), rotY);
-
-    //m_model->UpdateEffect([&](Imase::Effect* effect)
-    //    {
-    //        effect->SetLightDirection(m_lightDirection);
-    //    }
-    //);
-   //effect->SetAmbientLightColor(Colors::Black);
-
-    //m_effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
-    //effect->SetLightDirection(0, m_lightDirection);
-    ////effect->SetLightDiffuseColor(0, Colors::White);
-    //m_effect->SetLightEnabled(0, false);
-    //m_effect->SetLightEnabled(1, false);
-    //m_effect->SetLightEnabled(2, false);
-    //m_effect->SetLightDiffuseColor(2, Colors::Black);
-
-    //m_model->SetDiffuseColorByName(L"Material", XMFLOAT3(1,1,0));
-
     // ------------------------------------------------------- //
     // モデル描画 
     // ------------------------------------------------------- //
 
-    Imase::Effect* effect{};
-
-    // ------------------------------------------------------- //
-
-    // （フレームで頻繁に更新しない定数バッファを更新している）
     // ビュー行列とプロジェクション行列を設定
-    effect = m_model_Basic->GetEffect();
+    Imase::Effect* effect = m_model->GetEffect();
     effect->SetViewProjection(view, m_proj);
     effect->BeginFrame(context);
 
     // モデルの描画
-    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
-    //world *= SimpleMath::Matrix::CreateScale(2.0f);
-    world *= SimpleMath::Matrix::CreateTranslation(-2.0f, 0.0f, 0.0f);
-    m_model_Basic->Draw(context, world);
-
-    // ------------------------------------------------------- //
-
-    // （フレームで頻繁に更新しない定数バッファを更新している）
-    // ビュー行列とプロジェクション行列を設定
-    effect = m_model_NormalMap->GetEffect();
-    effect->SetViewProjection(view, m_proj);
-    effect->BeginFrame(context);
-
-    // モデルの描画
-    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
-    //world *= SimpleMath::Matrix::CreateScale(2.0f);
-    world *= SimpleMath::Matrix::CreateTranslation(2.0f, 0.0f, 0.0f);
-    //m_model_NormalMap->Draw(context, world);
-    
-    // ------------------------------------------------------- //
-    effect = m_model_PixelLighting->GetEffect();
-    effect->SetViewProjection(view, m_proj);
-    effect->BeginFrame(context);
-
-    // モデルの描画
-    world = SimpleMath::Matrix::CreateRotationY(static_cast<float>(m_timer.GetTotalSeconds() * 0.5f));
-    //world *= SimpleMath::Matrix::CreateScale(2.0f);
-    world *= SimpleMath::Matrix::CreateTranslation(2.0f, 0.0f, 0.0f);
-    m_model_PixelLighting->Draw(context, world);
-
-
-
-
-
-    //effect = m_model_Basic->GetEffect();
-
-
-    //m_sp->Begin();
-
-    //m_sp->Draw(effect->GetTexture(1), SimpleMath::Vector2(0, 0));
-
-    //m_sp->End();
+    SimpleMath::Matrix world;
+    m_model->Draw(context, world);
 
     // ------------------------------------------------------- //
 
@@ -288,21 +211,13 @@ void Game::CreateDeviceDependentResources()
     // -------------------------------------------------------------------------------------- //
 
     // シェーダーの作成
-    m_shader_Basic = std::make_unique<Imase::BasicShader>(device);
-    m_shader_NormalMap = std::make_unique<Imase::NormalMapShader>(device);
-    m_shader_PixelLighting = std::make_unique<Imase::PixelLightingShader>(device);
+    m_shader = std::make_unique<Imase::BasicShader>(device);
 
     // エフェクトの作成
-    m_effect_Basic = std::make_unique<Imase::Effect>(device, m_shader_Basic.get());
-    m_effect_NormalMap = std::make_unique<Imase::Effect>(device, m_shader_NormalMap.get());
-    m_effect_PixelLighting = std::make_unique<Imase::Effect>(device, m_shader_PixelLighting.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
 
     // モデルの作成
-    m_model_Basic = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_Basic.get());
-    m_model_NormalMap = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_NormalMap.get());
-    m_model_PixelLighting = Imase::Model::CreateFromImdl(device, L"Resources/Models/Cube.imdl", m_effect_PixelLighting.get());
-
-    m_sp = std::make_unique<SpriteBatch>(context);
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

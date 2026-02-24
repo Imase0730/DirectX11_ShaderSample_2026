@@ -90,21 +90,12 @@ private:
     DirectX::SimpleMath::Vector3 m_lightDirection;
 
     // シェーダー
-    std::unique_ptr<Imase::BasicShader> m_shader_Basic;
-    std::unique_ptr<Imase::NormalMapShader> m_shader_NormalMap;
-    std::unique_ptr<Imase::PixelLightingShader> m_shader_PixelLighting;
+    std::unique_ptr<Imase::BasicShader> m_shader;
 
     // エフェクト
-    std::unique_ptr<Imase::Effect> m_effect_Basic;
-    std::unique_ptr<Imase::Effect> m_effect_NormalMap;
-    std::unique_ptr<Imase::Effect> m_effect_PixelLighting;
+    std::unique_ptr<Imase::Effect> m_effect;
 
     // モデル
-    std::unique_ptr<Imase::Model> m_model_Basic;
-    std::unique_ptr<Imase::Model> m_model_NormalMap;
-    std::unique_ptr<Imase::Model> m_model_PixelLighting;
-
-    //
-    std::unique_ptr<DirectX::SpriteBatch> m_sp;
+    std::unique_ptr<Imase::Model> m_model;
 
 };

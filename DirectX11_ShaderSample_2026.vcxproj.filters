@@ -17,6 +17,9 @@
     <Filter Include="Shader">
       <UniqueIdentifier>{dc52ca36-dcaa-4144-a508-c15a683e932c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImaseLib\Shader">
+      <UniqueIdentifier>{963b91af-4dd3-4a4d-b696-2316e2f8a02d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -45,15 +48,6 @@
     <ClInclude Include="ImaseLib\Model.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
-    <ClInclude Include="ImaseLib\BasicShader.h">
-      <Filter>ImaseLib</Filter>
-    </ClInclude>
-    <ClInclude Include="ImaseLib\ShaderBase.h">
-      <Filter>ImaseLib</Filter>
-    </ClInclude>
-    <ClInclude Include="ImaseLib\NormalMapShader.h">
-      <Filter>ImaseLib</Filter>
-    </ClInclude>
     <ClInclude Include="ImaseLib\Imdl.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
@@ -63,8 +57,17 @@
     <ClInclude Include="ImaseLib\BinaryReader.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\BasicShader.h">
+      <Filter>ImaseLib\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\NormalMapShader.h">
+      <Filter>ImaseLib\Shader</Filter>
+    </ClInclude>
     <ClInclude Include="ImaseLib\PixelLightingShader.h">
-      <Filter>ImaseLib</Filter>
+      <Filter>ImaseLib\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="ImaseLib\ShaderBase.h">
+      <Filter>ImaseLib\Shader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
