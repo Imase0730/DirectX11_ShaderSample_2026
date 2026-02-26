@@ -115,6 +115,73 @@ static NodeInfo DeserializeNode(BinaryReader& reader)
 	return m;
 }
 
+static AnimationChannelVec3 DeserializeChannelVec3(BinaryReader& reader)
+{
+	AnimationChannelVec3 m = {};
+
+	m.nodeIndex = reader.ReadUInt32();
+
+	uint32_t time_size = reader.ReadUInt32();
+	m.times.resize(time_size);
+	for (uint32_t j = 0; j < time_size; j++)
+	{
+		m.times[j] = reader.ReadFloat();
+	}
+
+	m.values = reader.ReadVector<DirectX::XMFLOAT3>();
+
+	return m;
+}
+
+static AnimationChannelQuat DeserializeChannelQuat(BinaryReader& reader)
+{
+	AnimationChannelQuat m = {};
+
+	m.nodeIndex = reader.ReadUInt32();
+
+	uint32_t time_size = reader.ReadUInt32();
+	m.times.resize(time_size);
+	for (uint32_t j = 0; j < time_size; j++)
+	{
+		m.times[j] = reader.ReadFloat();
+	}
+
+	m.values = reader.ReadVector<DirectX::XMFLOAT4>();
+
+	return m;
+}
+
+static AnimationClip DeserializeAnimationClip(BinaryReader& reader)
+{
+	AnimationClip m = {};
+
+	m.name = reader.ReadString();
+	m.duration = reader.ReadFloat();
+
+	uint32_t count = reader.ReadUInt32();
+	m.translations.resize(count);
+	for (uint32_t i = 0; i < count; i++)
+	{
+		m.translations[i] = DeserializeChannelVec3(reader);
+	}
+
+	count = reader.ReadUInt32();
+	m.rotations.resize(count);
+	for (uint32_t i = 0; i < count; i++)
+	{
+		m.rotations[i] = DeserializeChannelQuat(reader);
+	}
+
+	count = reader.ReadUInt32();
+	m.scales.resize(count);
+	for (uint32_t i = 0; i < count; i++)
+	{
+		m.scales[i] = DeserializeChannelVec3(reader);
+	}
+
+	return m;
+}
+
 // Imdlのロード関数
 static HRESULT LoadImdl
 (
@@ -124,6 +191,7 @@ static HRESULT LoadImdl
 	std::vector<SubMeshInfo>& subMeshes,
 	std::vector<MeshGroupInfo>& meshGroups,
 	std::vector<NodeInfo>& nodes,
+	std::vector<AnimationClip>& animationClips,
 	std::vector<VertexPositionNormalTextureTangent>& vertices,
 	std::vector<uint32_t>& indices
 )
@@ -166,13 +234,13 @@ static HRESULT LoadImdl
 			uint32_t count = reader.ReadUInt32();
 			textures.resize(count);
 
-			for (uint32_t t = 0; t < count; t++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				// テクスチャ
-				textures[t].type = static_cast<TextureType>(reader.ReadUInt32());
+				textures[j].type = static_cast<TextureType>(reader.ReadUInt32());
 				uint32_t size = reader.ReadUInt32();
-				textures[t].data.resize(size);
-				reader.ReadBytes(textures[t].data.data(), size);
+				textures[j].data.resize(size);
+				reader.ReadBytes(textures[j].data.data(), size);
 			}
 			break;
 		}
@@ -181,7 +249,7 @@ static HRESULT LoadImdl
 		{
 			uint32_t count = reader.ReadUInt32();
 			materials.reserve(count);
-			for (uint32_t m = 0; m < count; m++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				materials.push_back(DeserializeMaterial(reader));
 			}
@@ -192,7 +260,7 @@ static HRESULT LoadImdl
 		{
 			uint32_t count = reader.ReadUInt32();
 			subMeshes.reserve(count);
-			for (uint32_t m = 0; m < count; m++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				subMeshes.push_back(DeserializeSubMesh(reader));
 			}
@@ -203,7 +271,7 @@ static HRESULT LoadImdl
 		{
 			uint32_t count = reader.ReadUInt32();
 			meshGroups.reserve(count);
-			for (uint32_t m = 0; m < count; m++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				meshGroups.push_back(DeserializeMeshGroup(reader));
 			}
@@ -214,7 +282,7 @@ static HRESULT LoadImdl
 		{
 			uint32_t count = reader.ReadUInt32();
 			nodes.reserve(count);
-			for (uint32_t m = 0; m < count; m++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				nodes.push_back(DeserializeNode(reader));
 			}
@@ -225,7 +293,7 @@ static HRESULT LoadImdl
 		{
 			uint32_t count = reader.ReadUInt32();
 			vertices.reserve(count);
-			for (uint32_t v = 0; v < count; v++)
+			for (uint32_t j = 0; j < count; j++)
 			{
 				vertices.push_back(DeserializeVertex(reader));
 			}
@@ -238,9 +306,21 @@ static HRESULT LoadImdl
 			break;
 		}
 
+		case CHUNK_ANIMATION:	// AnimationClip
+		{
+			uint32_t count = reader.ReadUInt32();
+			animationClips.reserve(count);
+			for (uint32_t j = 0; j < count; j++)
+			{
+				animationClips.push_back(DeserializeAnimationClip(reader));
+			}
+			break;
+		}
+
 		default:
 			throw std::runtime_error("Unknown chunk type");
 		}
+
 	}
 
 	return S_OK;
@@ -317,39 +397,27 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	std::vector<NodeInfo> nodes;
 	std::vector<VertexPositionNormalTextureTangent> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<AnimationClip> animations;
+
+	auto model = std::make_unique<Model>(device, pEffect);
 
 	// IMDLファイルのロード
-	HRESULT hr = LoadImdl(fname, textures, materials, subMeshes, meshGroups, nodes, vertices, indices);
+	HRESULT hr = LoadImdl(
+		fname,
+		textures, materials,
+		model->m_subMeshes, model->m_meshGroups, model->m_nodes, model->m_animations,
+		vertices, indices
+	);
 	if (hr == E_FAIL)
 	{
 		OutputDebugString(L"Failed to load IMDL file.\n");
 	}
-
-	auto model = std::make_unique<Model>(device, pEffect);
 
 	// エフェクトにテクスチャのシェダーリソースを作成して登録
 	model->GetEffect()->RegisterTextures(device, textures);
 
 	// エフェクトにマテリアルを登録
 	model->GetEffect()->RegisterMaterials(materials);
-
-	// サブメッシュを登録
-	for (auto& mesh : subMeshes)
-	{
-		model->m_subMeshes.emplace_back(mesh);
-	}
-
-	// メッシュグループを登録
-	for (auto& group : meshGroups)
-	{
-		model->m_meshGroups.emplace_back(group);
-	}
-
-	// ノードを登録
-	for (auto& node : nodes)
-	{
-		model->m_nodes.emplace_back(node);
-	}
 
 	// 頂点バッファの作成
 	{

@@ -69,6 +69,20 @@ namespace Imase
             return vec;
         }
 
+        // std::string‚ğ“Ç‚İæ‚éŠÖ”
+        //yuint32_tz(count) + y1bytez * count
+        std::string ReadString()
+        {
+            uint32_t length = ReadUInt32();
+
+            std::string str;
+            str.resize(length);
+
+            ReadBytes(str.data(), length);
+
+            return str;
+        }
+
         // ƒf[ƒ^‚ªI’[‚Ü‚Å“Ç‚İI‚í‚Á‚½‚çtrue‚ğ•Ô‚·ŠÖ”
         bool End() const
         {

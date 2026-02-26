@@ -217,7 +217,7 @@ void Game::CreateDeviceDependentResources()
     m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
 
     // ÉÇÉfÉãÇÃçÏê¨
-    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Motion.imdl", m_effect.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

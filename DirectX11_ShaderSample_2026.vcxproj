@@ -116,6 +116,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -165,6 +166,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -182,6 +184,7 @@
     <ClInclude Include="DirectXTK_Utilities\DebugDraw.h" />
     <ClInclude Include="DirectXTK_Utilities\ReadData.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="ImaseLib\Animator.h" />
     <ClInclude Include="ImaseLib\BinaryReader.h" />
     <ClInclude Include="ImaseLib\ChunkIO.h" />
     <ClInclude Include="ImaseLib\DebugCamera.h" />
@@ -200,6 +203,7 @@
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="DirectXTK_Utilities\DebugDraw.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="ImaseLib\Animator.cpp" />
     <ClCompile Include="ImaseLib\DebugCamera.cpp" />
     <ClCompile Include="ImaseLib\Effect.cpp" />
     <ClCompile Include="ImaseLib\GridFloor.cpp" />

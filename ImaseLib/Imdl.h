@@ -84,7 +84,8 @@ namespace Imase
         CHUNK_MESHGROUP = 'MGRP',
         CHUNK_NODE = 'NODE',
         CHUNK_VERTEX = 'VERT',
-        CHUNK_INDEX = 'INDX'
+        CHUNK_INDEX = 'INDX',
+        CHUNK_ANIMATION = 'ANIM'
     };
 
     // テクスチャタイプ
@@ -102,4 +103,38 @@ namespace Imase
         TextureType type;           // 種類
         std::vector<uint8_t> data;  // データ
     };
+
+    // -------------------------------------------------------------------------------------- //
+    // アニメーション
+    // -------------------------------------------------------------------------------------- //
+
+    // 平行移動、スケールに使用 
+    struct AnimationChannelVec3
+    {
+        uint32_t nodeIndex;
+
+        std::vector<float> times;
+        std::vector<DirectX::XMFLOAT3> values;
+    };
+
+    // 回転に使用
+    struct AnimationChannelQuat
+    {
+        uint32_t nodeIndex;
+
+        std::vector<float> times;
+        std::vector<DirectX::XMFLOAT4> values;
+    };
+
+    // アニメーションクリップ
+    struct AnimationClip
+    {
+        std::string name;   // アニメーションの名前
+        float duration;     // アニメーションの時間
+
+        std::vector<AnimationChannelVec3> translations; // 移動
+        std::vector<AnimationChannelQuat> rotations;    // 回転
+        std::vector<AnimationChannelVec3> scales;       // スケール
+    };
+
 }

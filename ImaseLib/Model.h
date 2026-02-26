@@ -30,6 +30,9 @@ namespace Imase
 		// ノード情報
 		std::vector<Imase::NodeInfo> m_nodes;
 
+		// アニメーション情報
+		std::vector<AnimationClip> m_animations;
+
 		// 頂点バッファ
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
 

@@ -69,6 +69,9 @@
     <ClInclude Include="ImaseLib\ShaderBase.h">
       <Filter>ImaseLib\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="ImaseLib\Animator.h">
+      <Filter>ImaseLib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -90,6 +93,9 @@
       <Filter>ImaseLib</Filter>
     </ClCompile>
     <ClCompile Include="ImaseLib\Model.cpp">
+      <Filter>ImaseLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ImaseLib\Animator.cpp">
       <Filter>ImaseLib</Filter>
     </ClCompile>
   </ItemGroup>
