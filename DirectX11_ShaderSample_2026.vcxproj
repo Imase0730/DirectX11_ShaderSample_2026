@@ -191,6 +191,7 @@
     <ClInclude Include="ImaseLib\Effect.h" />
     <ClInclude Include="ImaseLib\GridFloor.h" />
     <ClInclude Include="ImaseLib\Imdl.h" />
+    <ClInclude Include="ImaseLib\ImdlLoader.h" />
     <ClInclude Include="ImaseLib\NormalMapShader.h" />
     <ClInclude Include="ImaseLib\PixelLightingShader.h" />
     <ClInclude Include="ImaseLib\ShaderBase.h" />
@@ -207,6 +208,7 @@
     <ClCompile Include="ImaseLib\DebugCamera.cpp" />
     <ClCompile Include="ImaseLib\Effect.cpp" />
     <ClCompile Include="ImaseLib\GridFloor.cpp" />
+    <ClCompile Include="ImaseLib\ImdlLoader.cpp" />
     <ClCompile Include="ImaseLib\Model.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="pch.cpp">

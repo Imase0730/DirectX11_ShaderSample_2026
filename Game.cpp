@@ -45,6 +45,8 @@ void Game::Initialize(HWND window, int width, int height)
     m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, 0.0f);
     m_lightDirection.Normalize();
 
+    m_animator->Play(0, true);
+
 }
 
 #pragma region Frame Update
@@ -70,6 +72,8 @@ void Game::Update(DX::StepTimer const& timer)
     // デバッグカメラの更新
     m_debugCamera->Update();
 
+    // アニメーションの更新
+    m_animator->Update(elapsedTime);
 }
 #pragma endregion
 
@@ -107,8 +111,8 @@ void Game::Render()
 
     // モデルの描画
     SimpleMath::Matrix world;
-    m_model->Draw(context, world);
-
+//    m_model->Draw(context, world);
+    m_model->Draw(context, world, &m_animator->GetWorldMatrices());
     // ------------------------------------------------------- //
 
     m_deviceResources->PIXEndEvent();
@@ -218,6 +222,8 @@ void Game::CreateDeviceDependentResources()
 
     // モデルの作成
     m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Motion.imdl", m_effect.get());
+
+    m_animator = std::make_unique<Imase::Animator>(*m_model.get());
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

@@ -14,6 +14,7 @@
 #include "ImaseLib/BasicShader.h"
 #include "ImaseLib/NormalMapShader.h"
 #include "ImaseLib/PixelLightingShader.h"
+#include "ImaseLib/Animator.h"
 
 #include "SpriteBatch.h"
 
@@ -97,5 +98,9 @@ private:
 
     // ƒ‚ƒfƒ‹
     std::unique_ptr<Imase::Model> m_model;
+
+    std::unique_ptr<Imase::Animator> m_animator;
+
+
 
 };

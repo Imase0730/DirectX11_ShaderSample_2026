@@ -9,7 +9,6 @@
 #pragma once
 
 #include "Effect.h"
-#include "Imdl.h"
 
 namespace Imase
 {
@@ -48,6 +47,12 @@ namespace Imase
 		// ブレンドステート
 		Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
 
+		void DrawInternal(
+			ID3D11DeviceContext* context,
+			const DirectX::XMMATRIX& world,
+			const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
+		);
+
 	public:
 
 		// コンストラクタ
@@ -57,10 +62,23 @@ namespace Imase
 		static std::unique_ptr<Imase::Model> CreateFromImdl(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect);
 
 		// 描画関数
-		void Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world);
+		void Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world);
+
+		// 描画関数（アニメーション用の行列追加版）
+		void Draw(
+			ID3D11DeviceContext* context,
+			const DirectX::XMMATRIX& world,
+			const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
+		);
 
 		// エフェクトを取得する関数
 		Imase::Effect* GetEffect() const { return m_pEffect; }
+
+		// ノードを取得する関数
+		const std::vector<Imase::NodeInfo>& GetNodes() const;
+
+		// アニメーションを取得する関数
+		const Imase::AnimationClip* GetAnimation(uint32_t index) const;
 
 	};
 }

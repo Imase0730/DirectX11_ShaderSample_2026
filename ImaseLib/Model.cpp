@@ -8,325 +8,12 @@
 //--------------------------------------------------------------------------------------
 #include "pch.h"
 #include "Model.h"
-#include "Imdl.h"
-#include "ChunkIO.h"
-#include "BinaryReader.h"
+#include "ImdlLoader.h"
 
 using namespace DirectX;
 using namespace Imase;
 
 #include "DDSTextureLoader.h"
-
-// --------------------------------------------------------------------------------------------- //
-// Imdl形式のローダー
-// --------------------------------------------------------------------------------------------- //
-static MaterialInfo DeserializeMaterial(BinaryReader& reader)
-{
-	MaterialInfo m{};
-
-	m.diffuseColor.x = reader.ReadFloat();
-	m.diffuseColor.y = reader.ReadFloat();
-	m.diffuseColor.z = reader.ReadFloat();
-	m.diffuseColor.w = reader.ReadFloat();
-
-	m.metallicFactor = reader.ReadFloat();
-	m.roughnessFactor = reader.ReadFloat();
-
-	m.emissiveColor.x = reader.ReadFloat();
-	m.emissiveColor.y = reader.ReadFloat();
-	m.emissiveColor.z = reader.ReadFloat();
-
-	m.baseColorTexIndex = reader.ReadInt32();
-	m.normalTexIndex = reader.ReadInt32();
-	m.metalRoughTexIndex = reader.ReadInt32();
-	m.emissiveTexIndex = reader.ReadInt32();
-
-	return m;
-}
-
-static VertexPositionNormalTextureTangent DeserializeVertex(BinaryReader& reader)
-{
-	VertexPositionNormalTextureTangent v{};
-
-	v.position.x = reader.ReadFloat();
-	v.position.y = reader.ReadFloat();
-	v.position.z = reader.ReadFloat();
-
-	v.normal.x = reader.ReadFloat();
-	v.normal.y = reader.ReadFloat();
-	v.normal.z = reader.ReadFloat();
-
-	v.texcoord.x = reader.ReadFloat();
-	v.texcoord.y = reader.ReadFloat();
-
-	v.tangent.x = reader.ReadFloat();
-	v.tangent.y = reader.ReadFloat();
-	v.tangent.z = reader.ReadFloat();
-	v.tangent.w = reader.ReadFloat();
-
-	return v;
-}
-
-static SubMeshInfo DeserializeSubMesh(BinaryReader& reader)
-{
-	SubMeshInfo m{};
-	m.startIndex = reader.ReadUInt32();
-	m.indexCount = reader.ReadUInt32();
-	m.materialIndex = reader.ReadUInt32();
-	return m;
-}
-
-static MeshGroupInfo DeserializeMeshGroup(BinaryReader& reader)
-{
-	MeshGroupInfo m{};
-	m.subMeshStart = reader.ReadUInt32();
-	m.subMeshCount = reader.ReadUInt32();
-	return m;
-}
-
-static NodeInfo DeserializeNode(BinaryReader& reader)
-{
-	NodeInfo m{};
-
-	m.meshGroupIndex = reader.ReadInt32();
-
-	m.parentIndex = reader.ReadInt32();
-
-	m.localMatrix._11 = reader.ReadFloat();
-	m.localMatrix._12 = reader.ReadFloat();
-	m.localMatrix._13 = reader.ReadFloat();
-	m.localMatrix._14 = reader.ReadFloat();
-
-	m.localMatrix._21 = reader.ReadFloat();
-	m.localMatrix._22 = reader.ReadFloat();
-	m.localMatrix._23 = reader.ReadFloat();
-	m.localMatrix._24 = reader.ReadFloat();
-
-	m.localMatrix._31 = reader.ReadFloat();
-	m.localMatrix._32 = reader.ReadFloat();
-	m.localMatrix._33 = reader.ReadFloat();
-	m.localMatrix._34 = reader.ReadFloat();
-
-	m.localMatrix._41 = reader.ReadFloat();
-	m.localMatrix._42 = reader.ReadFloat();
-	m.localMatrix._43 = reader.ReadFloat();
-	m.localMatrix._44 = reader.ReadFloat();
-
-	return m;
-}
-
-static AnimationChannelVec3 DeserializeChannelVec3(BinaryReader& reader)
-{
-	AnimationChannelVec3 m = {};
-
-	m.nodeIndex = reader.ReadUInt32();
-
-	uint32_t time_size = reader.ReadUInt32();
-	m.times.resize(time_size);
-	for (uint32_t j = 0; j < time_size; j++)
-	{
-		m.times[j] = reader.ReadFloat();
-	}
-
-	m.values = reader.ReadVector<DirectX::XMFLOAT3>();
-
-	return m;
-}
-
-static AnimationChannelQuat DeserializeChannelQuat(BinaryReader& reader)
-{
-	AnimationChannelQuat m = {};
-
-	m.nodeIndex = reader.ReadUInt32();
-
-	uint32_t time_size = reader.ReadUInt32();
-	m.times.resize(time_size);
-	for (uint32_t j = 0; j < time_size; j++)
-	{
-		m.times[j] = reader.ReadFloat();
-	}
-
-	m.values = reader.ReadVector<DirectX::XMFLOAT4>();
-
-	return m;
-}
-
-static AnimationClip DeserializeAnimationClip(BinaryReader& reader)
-{
-	AnimationClip m = {};
-
-	m.name = reader.ReadString();
-	m.duration = reader.ReadFloat();
-
-	uint32_t count = reader.ReadUInt32();
-	m.translations.resize(count);
-	for (uint32_t i = 0; i < count; i++)
-	{
-		m.translations[i] = DeserializeChannelVec3(reader);
-	}
-
-	count = reader.ReadUInt32();
-	m.rotations.resize(count);
-	for (uint32_t i = 0; i < count; i++)
-	{
-		m.rotations[i] = DeserializeChannelQuat(reader);
-	}
-
-	count = reader.ReadUInt32();
-	m.scales.resize(count);
-	for (uint32_t i = 0; i < count; i++)
-	{
-		m.scales[i] = DeserializeChannelVec3(reader);
-	}
-
-	return m;
-}
-
-// Imdlのロード関数
-static HRESULT LoadImdl
-(
-	const std::wstring& filename,
-	std::vector<TextureEntry>& textures,
-	std::vector<MaterialInfo>& materials,
-	std::vector<SubMeshInfo>& subMeshes,
-	std::vector<MeshGroupInfo>& meshGroups,
-	std::vector<NodeInfo>& nodes,
-	std::vector<AnimationClip>& animationClips,
-	std::vector<VertexPositionNormalTextureTangent>& vertices,
-	std::vector<uint32_t>& indices
-)
-{
-	// ファイルオープン
-	std::ifstream ifs(filename, std::ios::binary);
-	if (!ifs.is_open())
-	{
-		return E_FAIL;
-	}
-
-	// ヘッダ
-	FileHeader header{};
-	ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
-
-	if (header.magic != 0x4C444D49)	// 'IMDL'
-	{
-		return E_FAIL;
-	}
-
-	// チャンク読み込み
-	for (uint32_t i = 0; i < header.chunkCount; ++i)
-	{
-		Imase::ChunkHeader ch{};
-		std::vector<uint8_t> buffer;
-
-		// チェンクデータ読み込み
-		if (!Imase::ReadChunk(ifs, ch, buffer))
-			return E_FAIL;
-
-		// 指定サイズのデータを取得するリーダー
-		BinaryReader reader(buffer);
-
-		switch (ch.type)
-		{
-
-		case CHUNK_TEXTURE:		// TextureType
-		{
-			// テクスチャの数
-			uint32_t count = reader.ReadUInt32();
-			textures.resize(count);
-
-			for (uint32_t j = 0; j < count; j++)
-			{
-				// テクスチャ
-				textures[j].type = static_cast<TextureType>(reader.ReadUInt32());
-				uint32_t size = reader.ReadUInt32();
-				textures[j].data.resize(size);
-				reader.ReadBytes(textures[j].data.data(), size);
-			}
-			break;
-		}
-
-		case CHUNK_MATERIAL:	// MaterialInfo
-		{
-			uint32_t count = reader.ReadUInt32();
-			materials.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				materials.push_back(DeserializeMaterial(reader));
-			}
-			break;
-		}
-
-		case CHUNK_SUBMESH:		// SubMeshInfo
-		{
-			uint32_t count = reader.ReadUInt32();
-			subMeshes.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				subMeshes.push_back(DeserializeSubMesh(reader));
-			}
-			break;
-		}
-
-		case CHUNK_MESHGROUP:	// MeshGroupInfo
-		{
-			uint32_t count = reader.ReadUInt32();
-			meshGroups.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				meshGroups.push_back(DeserializeMeshGroup(reader));
-			}
-			break;
-		}
-
-		case CHUNK_NODE:	// NodeInfo
-		{
-			uint32_t count = reader.ReadUInt32();
-			nodes.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				nodes.push_back(DeserializeNode(reader));
-			}
-			break;
-		}
-
-		case CHUNK_VERTEX:		// VertexPositionNormalTextureTangent
-		{
-			uint32_t count = reader.ReadUInt32();
-			vertices.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				vertices.push_back(DeserializeVertex(reader));
-			}
-			break;
-		}
-
-		case CHUNK_INDEX:		// uint32_t
-		{
-			indices = reader.ReadVector<uint32_t>();
-			break;
-		}
-
-		case CHUNK_ANIMATION:	// AnimationClip
-		{
-			uint32_t count = reader.ReadUInt32();
-			animationClips.reserve(count);
-			for (uint32_t j = 0; j < count; j++)
-			{
-				animationClips.push_back(DeserializeAnimationClip(reader));
-			}
-			break;
-		}
-
-		default:
-			throw std::runtime_error("Unknown chunk type");
-		}
-
-	}
-
-	return S_OK;
-}
-
-// --------------------------------------------------------------------------------------------- //
 
 // コンストラクタ
 Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
@@ -392,17 +79,13 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 {
 	std::vector<TextureEntry> textures;
 	std::vector<MaterialInfo> materials;
-	std::vector<SubMeshInfo> subMeshes;
-	std::vector<MeshGroupInfo> meshGroups;
-	std::vector<NodeInfo> nodes;
 	std::vector<VertexPositionNormalTextureTangent> vertices;
 	std::vector<uint32_t> indices;
-	std::vector<AnimationClip> animations;
 
 	auto model = std::make_unique<Model>(device, pEffect);
 
 	// IMDLファイルのロード
-	HRESULT hr = LoadImdl(
+	HRESULT hr = ImdlLoader::LoadImdl(
 		fname,
 		textures, materials,
 		model->m_subMeshes, model->m_meshGroups, model->m_nodes, model->m_animations,
@@ -453,8 +136,22 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	return model;
 }
 
+void Imase::Model::Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world)
+{
+	DrawInternal(context, world, nullptr);
+}
+
+void Imase::Model::Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world, const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices)
+{
+	DrawInternal(context, world, animatedWorldMatrices);
+}
+
 // 描画関数
-void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
+void Imase::Model::DrawInternal(
+	ID3D11DeviceContext* context,
+	const DirectX::XMMATRIX& world,
+	const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
+)
 {
 	// ラスタライザーステートの設定
 	context->RSSetState(m_rasterizerState.Get());
@@ -479,35 +176,57 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 
 	// ----- メッシュ描画 ----- //
 
-	// 各ノードのワールド行列を作成
+	// ---- ノード行列準備 ---- //
+
 	std::vector<XMMATRIX> worldMatrices(m_nodes.size());
 
-	for (size_t i = 0; i < m_nodes.size(); i++)
+	if (animatedWorldMatrices)
 	{
-		XMMATRIX local = XMLoadFloat4x4(&m_nodes[i].localMatrix);
-
-		if (m_nodes[i].parentIndex >= 0)
+		// ★ アニメーションあり
+		for (size_t i = 0; i < m_nodes.size(); ++i)
 		{
-			worldMatrices[i] = local * worldMatrices[m_nodes[i].parentIndex];
+			worldMatrices[i] =
+				XMLoadFloat4x4(&(*animatedWorldMatrices)[i]) * world;
 		}
-		else
+	}
+	else
+	{
+		// ★ 静的ノード計算
+		for (size_t i = 0; i < m_nodes.size(); ++i)
 		{
-			// ルートノード
-			worldMatrices[i] = local;
+			const NodeInfo& node = m_nodes[i];
+
+			XMVECTOR t = XMLoadFloat3(&node.defaultTranslation);
+			XMVECTOR r = XMLoadFloat4(&node.defaultRotation);
+			XMVECTOR s = XMLoadFloat3(&node.defaultScale);
+
+			XMMATRIX local = XMMatrixScalingFromVector(s) *	XMMatrixRotationQuaternion(r) *	XMMatrixTranslationFromVector(t);
+
+			if (m_nodes[i].parentIndex >= 0)
+			{
+				worldMatrices[i] =
+					local * worldMatrices[m_nodes[i].parentIndex];
+			}
+			else
+			{
+				worldMatrices[i] = local;
+			}
+
+			worldMatrices[i] *= world;
 		}
 	}
 
-	// ノード毎にメッシュを描画
-	for (size_t n = 0; n < m_nodes.size(); n++)
+	// ---- 描画 ---- //
+
+	for (size_t n = 0; n < m_nodes.size(); ++n)
 	{
 		auto& node = m_nodes[n];
-
-		XMMATRIX nodeWorld = worldMatrices[n] * world;
+		XMMATRIX nodeWorld = worldMatrices[n];
 
 		uint32_t start = m_meshGroups[node.meshGroupIndex].subMeshStart;
 		uint32_t count = m_meshGroups[node.meshGroupIndex].subMeshCount;
 
-		for (uint32_t i = 0; i < count; i++)
+		for (uint32_t i = 0; i < count; ++i)
 		{
 			SubMeshInfo& mesh = m_subMeshes[start + i];
 
@@ -518,4 +237,20 @@ void Imase::Model::Draw(ID3D11DeviceContext* context, DirectX::XMMATRIX world)
 			context->DrawIndexed(mesh.indexCount, mesh.startIndex, 0);
 		}
 	}
+}
+
+// ノードを取得する関数
+const std::vector<Imase::NodeInfo>& Imase::Model::GetNodes() const
+{
+	return m_nodes;
+}
+
+// アニメーションを取得する関数
+const Imase::AnimationClip* Imase::Model::GetAnimation(uint32_t index) const
+{
+	if (index >= m_animations.size())
+	{
+		return nullptr;
+	}
+	return &m_animations[index];
 }
