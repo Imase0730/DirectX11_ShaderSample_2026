@@ -25,6 +25,14 @@ namespace Imase
         {
         }
 
+        // yint16_tz‚ğ“Ç‚İæ‚éŠÖ”
+        int16_t ReadInt16()
+        {
+            int16_t v;
+            ReadRaw(&v, sizeof(v));
+            return v;
+        }
+
         // yuint32_tz‚ğ“Ç‚İæ‚éŠÖ”
         uint32_t ReadUInt32()
         {

@@ -10,6 +10,7 @@
 #include "ImdlLoader.h"
 #include "ChunkIO.h"
 
+// ロードする関数（マテリアル）
 Imase::MaterialInfo Imase::ImdlLoader::DeserializeMaterial(BinaryReader& reader)
 {
 	MaterialInfo m{};
@@ -34,6 +35,7 @@ Imase::MaterialInfo Imase::ImdlLoader::DeserializeMaterial(BinaryReader& reader)
 	return m;
 }
 
+// ロードする関数（頂点情報）
 Imase::VertexPositionNormalTextureTangent Imase::ImdlLoader::DeserializeVertex(BinaryReader& reader)
 {
 	VertexPositionNormalTextureTangent v{};
@@ -54,9 +56,20 @@ Imase::VertexPositionNormalTextureTangent Imase::ImdlLoader::DeserializeVertex(B
 	v.tangent.z = reader.ReadFloat();
 	v.tangent.w = reader.ReadFloat();
 
+	v.joint.x = reader.ReadUInt32();
+	v.joint.y = reader.ReadUInt32();
+	v.joint.z = reader.ReadUInt32();
+	v.joint.w = reader.ReadUInt32();
+
+	v.weight.x = reader.ReadFloat();
+	v.weight.y = reader.ReadFloat();
+	v.weight.z = reader.ReadFloat();
+	v.weight.w = reader.ReadFloat();
+
 	return v;
 }
 
+// ロードする関数（メッシュ）
 Imase::SubMeshInfo Imase::ImdlLoader::DeserializeSubMesh(BinaryReader& reader)
 {
 	SubMeshInfo m{};
@@ -66,6 +79,7 @@ Imase::SubMeshInfo Imase::ImdlLoader::DeserializeSubMesh(BinaryReader& reader)
 	return m;
 }
 
+// ロードする関数（メッシュグループ）
 Imase::MeshGroupInfo Imase::ImdlLoader::DeserializeMeshGroup(BinaryReader& reader)
 {
 	MeshGroupInfo m{};
@@ -79,8 +93,8 @@ Imase::NodeInfo Imase::ImdlLoader::DeserializeNode(BinaryReader& reader)
 	NodeInfo m{};
 
 	m.meshGroupIndex = reader.ReadInt32();
-
 	m.parentIndex = reader.ReadInt32();
+	m.skinIndex = reader.ReadInt32();
 
 	m.defaultTranslation.x = reader.ReadFloat();
 	m.defaultTranslation.y = reader.ReadFloat();
@@ -98,42 +112,31 @@ Imase::NodeInfo Imase::ImdlLoader::DeserializeNode(BinaryReader& reader)
 	return m;
 }
 
+// ロードする関数（Vector3の配列）
 Imase::AnimationChannelVec3 Imase::ImdlLoader::DeserializeChannelVec3(BinaryReader& reader)
 {
 	AnimationChannelVec3 m = {};
 
 	m.nodeIndex = reader.ReadUInt32();
-
-	uint32_t time_size = reader.ReadUInt32();
-	m.times.resize(time_size);
-	for (uint32_t j = 0; j < time_size; j++)
-	{
-		m.times[j] = reader.ReadFloat();
-	}
-
+	m.times = reader.ReadVector<float>();
 	m.values = reader.ReadVector<DirectX::XMFLOAT3>();
 
 	return m;
 }
 
+// ロードする関数（クォータニオンの配列）
 Imase::AnimationChannelQuat Imase::ImdlLoader::DeserializeChannelQuat(BinaryReader& reader)
 {
 	AnimationChannelQuat m = {};
 
 	m.nodeIndex = reader.ReadUInt32();
-
-	uint32_t time_size = reader.ReadUInt32();
-	m.times.resize(time_size);
-	for (uint32_t j = 0; j < time_size; j++)
-	{
-		m.times[j] = reader.ReadFloat();
-	}
-
+	m.times = reader.ReadVector<float>();
 	m.values = reader.ReadVector<DirectX::XMFLOAT4>();
 
 	return m;
 }
 
+// ロードする関数（アニメーション）
 Imase::AnimationClip Imase::ImdlLoader::DeserializeAnimationClip(BinaryReader& reader)
 {
 	AnimationClip m = {};
@@ -165,6 +168,18 @@ Imase::AnimationClip Imase::ImdlLoader::DeserializeAnimationClip(BinaryReader& r
 	return m;
 }
 
+// ロードする関数（スキン）
+Imase::SkinInfo Imase::ImdlLoader::DeserializeSkinInfo(BinaryReader& reader)
+{
+	SkinInfo m = {};
+
+	m.rootNode = reader.ReadInt32();
+	m.jointIndices = reader.ReadVector<uint32_t>();
+	m.inverseBindMatrices = reader.ReadVector<DirectX::XMFLOAT4X4>();
+
+	return m;
+}
+
 // Imdlのロード関数
 HRESULT Imase::ImdlLoader::LoadImdl
 (
@@ -175,6 +190,7 @@ HRESULT Imase::ImdlLoader::LoadImdl
 	std::vector<MeshGroupInfo>& meshGroups,
 	std::vector<NodeInfo>& nodes,
 	std::vector<AnimationClip>& animationClips,
+	std::vector<SkinInfo>& skins,
 	std::vector<VertexPositionNormalTextureTangent>& vertices,
 	std::vector<uint32_t>& indices
 )
@@ -296,6 +312,17 @@ HRESULT Imase::ImdlLoader::LoadImdl
 			for (uint32_t j = 0; j < count; j++)
 			{
 				animationClips.push_back(DeserializeAnimationClip(reader));
+			}
+			break;
+		}
+
+		case CHUNK_SKIN:	// SkinInfo
+		{
+			uint32_t count = reader.ReadUInt32();
+			skins.reserve(count);
+			for (uint32_t j = 0; j < count; j++)
+			{
+				skins.push_back(DeserializeSkinInfo(reader));
 			}
 			break;
 		}

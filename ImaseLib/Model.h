@@ -32,6 +32,9 @@ namespace Imase
 		// アニメーション情報
 		std::vector<AnimationClip> m_animations;
 
+		// スキン情報
+		std::vector<SkinInfo> m_skins;
+
 		// 頂点バッファ
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
 
@@ -47,11 +50,8 @@ namespace Imase
 		// ブレンドステート
 		Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
 
-		void DrawInternal(
-			ID3D11DeviceContext* context,
-			const DirectX::XMMATRIX& world,
-			const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
-		);
+		// スキン有りの場合 true
+		bool m_hasSkin;
 
 	public:
 
@@ -61,14 +61,11 @@ namespace Imase
 		// モデルデータ作成関数
 		static std::unique_ptr<Imase::Model> CreateFromImdl(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect);
 
-		// 描画関数
-		void Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world);
-
 		// 描画関数（アニメーション用の行列追加版）
 		void Draw(
 			ID3D11DeviceContext* context,
 			const DirectX::XMMATRIX& world,
-			const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
+			const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices = nullptr
 		);
 
 		// エフェクトを取得する関数

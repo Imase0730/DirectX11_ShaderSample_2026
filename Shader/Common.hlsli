@@ -19,6 +19,9 @@ cbuffer PerObjectCB : register(b1)
 {
     float4x4 World;
     float4x4 WorldInverseTranspose;
+
+    uint UseSkin;
+    float3 _paddding_O0;
 };
 
 // 定数バッファ：マテリアル
@@ -34,12 +37,19 @@ cbuffer PerMaterialCB : register(b2)
     float2 _paddding_M0;
 };
 
+// 定数バッファ：スキン行列
+cbuffer SkinCB : register(b3)
+{
+    float4x4 Bones[128];
+};
+
 // 頂点シェーダーの入力用
 struct VSInput
 {
-    float3 Position : POSITION; // 位置
-    float3 Normal   : NORMAL;   // 法線
-    float2 TexCoord : TEXCOORD; // テクスチャ座標
-    float4 Tangent  : TANGENT;  // 接線
+    float3 Position : POSITION;     // 位置
+    float3 Normal   : NORMAL;       // 法線
+    float2 TexCoord : TEXCOORD;     // テクスチャ座標
+    float4 Tangent  : TANGENT;      // 接線
+    uint4 Joint     : BLENDINDICES; // ジョイントインデックス
+    float4 Weight   : BLENDWEIGHT;  // ウエイト
 };
-

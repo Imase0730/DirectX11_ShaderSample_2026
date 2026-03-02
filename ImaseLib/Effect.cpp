@@ -24,6 +24,7 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     , m_materials{}
     , m_materialIndex{}
     , m_lightStates{}
+    , m_useSkin{}
 {
     // ----- サンプラーステート ----- //
     {
@@ -44,6 +45,7 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
     CreatePerFrameCB(device);
     CreatePerObjectCB(device);
     CreatePerMaterialCB(device);
+    CreateSkinCB(device);
 
     // ディフォルトライトの設定
     EnableDefaultLighting();
@@ -111,8 +113,8 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     m_pShader->Bind(context);
 
     // 定数バッファを設定
-    ID3D11Buffer* cbBuffers[] = { m_perFrameCB.Get(), m_perObjectCB.Get(), m_perMaterialCB.Get() };
-    context->VSSetConstantBuffers(0, 3, cbBuffers);
+    ID3D11Buffer* cbBuffers[] = { m_perFrameCB.Get(), m_perObjectCB.Get(), m_perMaterialCB.Get(), m_skinCB.Get()};
+    context->VSSetConstantBuffers(0, 4, cbBuffers);
     context->PSSetConstantBuffers(0, 3, cbBuffers);
 
     // サンプラーステートの設定
@@ -190,6 +192,13 @@ void Imase::Effect::SetWorld(const DirectX::XMMATRIX& world)
     m_dirtyFlags |= EffectDirtyFlags::World;
 }
 
+// スキン使用有無を設定する関数
+void Imase::Effect::SetUseSkin(bool useSkin)
+{
+    m_useSkin = useSkin;
+    m_dirtyFlags |= EffectDirtyFlags::World;
+}
+
 // グローバルアンビエント色を設定する関数
 void Imase::Effect::SetAmbientLightColor(DirectX::XMVECTOR ambientColor)
 {
@@ -232,21 +241,21 @@ void Imase::Effect::SetMaterialIndex(uint32_t materialIndex)
 // ディフォルトライトの設定関数
 void Imase::Effect::EnableDefaultLighting()
 {
-    static const XMFLOAT3 defaultDirections[LIGHT_MAX] =
+    static const XMFLOAT3 defaultDirections[MaxLights] =
     {
         { -0.5265408f, -0.5735765f, -0.6275069f  },
         {  0.7198464f,  0.3420201f,  0.6040227f  },
         {  0.4545195f, -0.7660444f,  0.4545195f  },
     };
 
-    static const XMVECTOR defaultDiffuse[LIGHT_MAX] =
+    static const XMVECTOR defaultDiffuse[MaxLights] =
     {
         {  1.0000000f, 0.9607844f, 0.8078432f, },
         {  0.9647059f, 0.7607844f, 0.4078432f, },
         {  0.3231373f, 0.3607844f, 0.3937255f, },
     };
 
-    static const XMVECTOR defaultSpecular[LIGHT_MAX] =
+    static const XMVECTOR defaultSpecular[MaxLights] =
     {
         { 1.0000000f, 0.9607844f, 0.8078432f, },
         { 0.0000000f, 0.0000000f, 0.0000000f, },
@@ -257,7 +266,7 @@ void Imase::Effect::EnableDefaultLighting()
 
     SetAmbientLightColor(defaultAmbient);
 
-    for (int i = 0; i < LIGHT_MAX; i++)
+    for (int i = 0; i < MaxLights; i++)
     {
         SetLightEnabled(i, true);
         SetLightDirection(i, defaultDirections[i]);
@@ -308,6 +317,20 @@ void Imase::Effect::CreatePerMaterialCB(ID3D11Device* device)
     );
 }
 
+// 定数バッファの作成関数（スキン行列）
+void Imase::Effect::CreateSkinCB(ID3D11Device* device)
+{
+    // 定数バッファの作成
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = sizeof(Imase::SkinCB);
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    DX::ThrowIfFailed(
+        device->CreateBuffer(&desc, nullptr, m_skinCB.ReleaseAndGetAddressOf())
+    );
+}
+
 // 定数バッファ更新関数（フレーム更新時）
 void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
 {
@@ -327,7 +350,7 @@ void Imase::Effect::UpdatePerFrameCB(ID3D11DeviceContext* context)
     cb.AmbientLightColor = m_ambientLightColor;
  
     // ライト
-    for (int i = 0; i < LIGHT_MAX; i++)
+    for (int i = 0; i < MaxLights; i++)
     {
         if (m_lightStates.lights[i].enable)
         {
@@ -364,6 +387,9 @@ void Imase::Effect::UpdatePerObjectCB(ID3D11DeviceContext* context)
     // ワールド行列の逆転置行列
     cb.WorldInverseTranspose = XMMatrixTranspose(XMMatrixInverse(nullptr, m_world));
 
+    // スキンの使用有無
+    cb.UseSkin = m_useSkin;
+
     // 定数バッファ更新(b1)
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     DX::ThrowIfFailed(
@@ -396,10 +422,31 @@ void Imase::Effect::UpdatePerMaterialCB(ID3D11DeviceContext* context)
     context->Unmap(m_perMaterialCB.Get(), 0);
 }
 
+// 定数バッファ更新関数（スキン行列）
+void Imase::Effect::UpdateSkinCB(ID3D11DeviceContext* context, const std::vector<DirectX::XMMATRIX>& matrices)
+{
+    Imase::SkinCB cb = {};
+
+    assert(matrices.size() <= MaxBones);
+
+    for (size_t i = 0; i < matrices.size(); ++i)
+    {
+        cb.Bones[i] = XMMatrixTranspose(matrices[i]);
+    }
+
+    // 定数バッファ更新(b3)
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    DX::ThrowIfFailed(
+        context->Map(m_skinCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)
+    );
+    memcpy(mapped.pData, &cb, sizeof(cb));
+    context->Unmap(m_skinCB.Get(), 0);
+}
+
 // ライトの番号を検証する関数
 void Imase::Effect::ValidateLightIndex(int lightNo)
 {
-    if (lightNo < 0 || lightNo >= LIGHT_MAX)
+    if (lightNo < 0 || lightNo >= MaxLights)
     {
         throw std::invalid_argument("lightNo invalid");
     }

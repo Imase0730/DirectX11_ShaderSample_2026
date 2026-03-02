@@ -92,6 +92,8 @@ private:
 
     // シェーダー
     std::unique_ptr<Imase::BasicShader> m_shader;
+    std::unique_ptr<Imase::PixelLightingShader> m_Pshader;
+    std::unique_ptr<Imase::NormalMapShader> m_Nshader;
 
     // エフェクト
     std::unique_ptr<Imase::Effect> m_effect;

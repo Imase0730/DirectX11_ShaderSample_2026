@@ -17,7 +17,8 @@ using namespace Imase;
 
 // コンストラクタ
 Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
-	: m_pEffect(pEffect)
+	: m_pEffect{ pEffect }
+	, m_hasSkin{ false }
 {
 	// ----- ラスタライザーステート ----- //
 	{
@@ -88,13 +89,16 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	HRESULT hr = ImdlLoader::LoadImdl(
 		fname,
 		textures, materials,
-		model->m_subMeshes, model->m_meshGroups, model->m_nodes, model->m_animations,
+		model->m_subMeshes, model->m_meshGroups, model->m_nodes, model->m_animations, model->m_skins,
 		vertices, indices
 	);
 	if (hr == E_FAIL)
 	{
 		OutputDebugString(L"Failed to load IMDL file.\n");
 	}
+
+	// スキン有りフラグ
+	model->m_hasSkin = !model->m_skins.empty();
 
 	// エフェクトにテクスチャのシェダーリソースを作成して登録
 	model->GetEffect()->RegisterTextures(device, textures);
@@ -136,18 +140,8 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	return model;
 }
 
-void Imase::Model::Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world)
-{
-	DrawInternal(context, world, nullptr);
-}
-
-void Imase::Model::Draw(ID3D11DeviceContext* context, const DirectX::XMMATRIX& world, const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices)
-{
-	DrawInternal(context, world, animatedWorldMatrices);
-}
-
 // 描画関数
-void Imase::Model::DrawInternal(
+void Imase::Model::Draw(
 	ID3D11DeviceContext* context,
 	const DirectX::XMMATRIX& world,
 	const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
@@ -174,8 +168,6 @@ void Imase::Model::DrawInternal(
 	// トポロジーの設定
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ----- メッシュ描画 ----- //
-
 	// ---- ノード行列準備 ---- //
 
 	std::vector<XMMATRIX> worldMatrices(m_nodes.size());
@@ -185,8 +177,7 @@ void Imase::Model::DrawInternal(
 		// ★ アニメーションあり
 		for (size_t i = 0; i < m_nodes.size(); ++i)
 		{
-			worldMatrices[i] =
-				XMLoadFloat4x4(&(*animatedWorldMatrices)[i]) * world;
+			worldMatrices[i] = XMLoadFloat4x4(&(*animatedWorldMatrices)[i]) * world;
 		}
 	}
 	else
@@ -204,8 +195,7 @@ void Imase::Model::DrawInternal(
 
 			if (m_nodes[i].parentIndex >= 0)
 			{
-				worldMatrices[i] =
-					local * worldMatrices[m_nodes[i].parentIndex];
+				worldMatrices[i] = local * worldMatrices[m_nodes[i].parentIndex];
 			}
 			else
 			{
@@ -216,12 +206,41 @@ void Imase::Model::DrawInternal(
 		}
 	}
 
-	// ---- 描画 ---- //
+	// ----- メッシュ描画 ----- //
 
-	for (size_t n = 0; n < m_nodes.size(); ++n)
+	for (size_t nodeIndex = 0; nodeIndex < m_nodes.size(); ++nodeIndex)
 	{
-		auto& node = m_nodes[n];
-		XMMATRIX nodeWorld = worldMatrices[n];
+		const auto& node = m_nodes[nodeIndex];
+
+		// メッシュなし
+		if (node.meshGroupIndex == -1) continue;
+
+		// ワールド行列
+		XMMATRIX nodeWorld = worldMatrices[nodeIndex];
+
+		// スキニングアニメーションするか？
+		bool useSkin = (m_hasSkin && node.skinIndex >= 0);
+
+		if (useSkin)
+		{
+			const SkinInfo& skin = m_skins[node.skinIndex];
+
+			std::vector<XMMATRIX> skinMatrices;
+			skinMatrices.resize(skin.jointIndices.size());
+
+			for (size_t i = 0; i < skin.jointIndices.size(); i++)
+			{
+				int jointNodeIndex = skin.jointIndices[i];
+
+				XMMATRIX jointWorld = worldMatrices[jointNodeIndex];
+				XMMATRIX ibm = XMLoadFloat4x4(&skin.inverseBindMatrices[i]);
+
+				skinMatrices[i] = ibm * jointWorld;
+			}
+
+			// スキン行列を更新
+			m_pEffect->UpdateSkinCB(context, skinMatrices);
+		}
 
 		uint32_t start = m_meshGroups[node.meshGroupIndex].subMeshStart;
 		uint32_t count = m_meshGroups[node.meshGroupIndex].subMeshCount;
@@ -232,6 +251,7 @@ void Imase::Model::DrawInternal(
 
 			m_pEffect->SetMaterialIndex(mesh.materialIndex);
 			m_pEffect->SetWorld(nodeWorld);
+			m_pEffect->SetUseSkin(useSkin);
 			m_pEffect->Apply(context);
 
 			context->DrawIndexed(mesh.indexCount, mesh.startIndex, 0);

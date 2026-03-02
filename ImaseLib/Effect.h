@@ -13,6 +13,9 @@
 
 namespace Imase
 {
+    // 最大ボーン数
+    static constexpr int MaxBones = 128;
+
     // 定数バッファ変更フラグ
     namespace EffectDirtyFlags
     {
@@ -34,7 +37,7 @@ namespace Imase
     };
 
     // ライトの最大数
-    static constexpr int LIGHT_MAX = 3;
+    static constexpr int MaxLights = 3;
 
     // フレームの最初に更新（b0）
     struct PerFrameCB
@@ -44,9 +47,9 @@ namespace Imase
 
         DirectX::XMFLOAT4 AmbientLightColor;
 
-        DirectX::XMFLOAT4 LightDirection[LIGHT_MAX];
-        DirectX::XMFLOAT4 LightDiffuseColor[LIGHT_MAX];
-        DirectX::XMFLOAT4 LightSpecularColor[LIGHT_MAX];
+        DirectX::XMFLOAT4 LightDirection[MaxLights];
+        DirectX::XMFLOAT4 LightDiffuseColor[MaxLights];
+        DirectX::XMFLOAT4 LightSpecularColor[MaxLights];
 
         DirectX::XMFLOAT4 EyePosition;
     };
@@ -56,6 +59,9 @@ namespace Imase
     {
         DirectX::XMMATRIX World;
         DirectX::XMMATRIX WorldInverseTranspose;
+
+        uint32_t UseSkin;
+        float padding[3];
     };
 
     // マテリアル（b2）
@@ -71,6 +77,12 @@ namespace Imase
         float             padding[2];
     };
 
+    // スキニング用行列（b3）
+    struct SkinCB
+    {
+        DirectX::XMMATRIX Bones[MaxBones];
+    };
+
     // ライト
     struct LightState
     {
@@ -83,7 +95,7 @@ namespace Imase
     // ライトの状態
     struct LightingStates
     {
-        LightState lights[LIGHT_MAX];
+        LightState lights[MaxLights];
     };
 
 	class Effect
@@ -126,11 +138,17 @@ namespace Imase
         // 定数バッファ（オブジェクト毎に更新用）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_perObjectCB;
 
-        // 定数バッファ（マテリアル更新用）
+        // 定数バッファ（マテリアル用）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_perMaterialCB;
+
+        // 定数バッファ（スキン行列用）
+        Microsoft::WRL::ComPtr<ID3D11Buffer> m_skinCB;
 
         // サンプラーステート
         Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
+
+        // スキン使用有無
+        bool m_useSkin;
 
     public:
 
@@ -161,6 +179,9 @@ namespace Imase
         // ワールド行列を設定する関数
         void SetWorld(const DirectX::XMMATRIX& world);
 
+        // スキン使用有無を設定する関数
+        void SetUseSkin(bool useSkin);
+
         // グローバルアンビエント色を設定する関数
         void SetAmbientLightColor(DirectX::XMVECTOR ambientColor);
 
@@ -176,6 +197,9 @@ namespace Imase
         // ディフォルトライトの設定関数
         void EnableDefaultLighting();
 
+        // 定数バッファ更新関数（スキン行列）
+        void UpdateSkinCB(ID3D11DeviceContext* context, const std::vector<DirectX::XMMATRIX>& matrices);
+
     private:
     
         // 定数バッファ作成関数（フレーム更新時）
@@ -186,6 +210,9 @@ namespace Imase
 
         // 定数バッファ作成関数（マテリアル）
         void CreatePerMaterialCB(ID3D11Device* device);
+
+        // 定数バッファ作成関数（スキン行列）
+        void CreateSkinCB(ID3D11Device* device);
 
         // 定数バッファ更新関数（フレーム更新時）
         void UpdatePerFrameCB(ID3D11DeviceContext* context);

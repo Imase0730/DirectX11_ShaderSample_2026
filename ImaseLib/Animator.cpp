@@ -1,3 +1,11 @@
+//--------------------------------------------------------------------------------------
+// File: Animator.cpp
+//
+// アニメーションの再生を管理するクラス
+//
+// Date: 2026.3.3
+// Author: Hideyasu Imase
+//--------------------------------------------------------------------------------------
 #include "pch.h"
 #include "Animator.h"
 #include "Imdl.h"
@@ -27,6 +35,12 @@ Imase::Animator::Animator(const Imase::Model& model)
     m_tempPoseB.transforms.resize(nodeCount);
     m_localMatrices.resize(nodeCount);
     m_worldMatrices.resize(nodeCount);
+
+    // ワールド行列を初期化
+    for (auto& m : m_worldMatrices)
+    {
+        m = SimpleMath::Matrix::Identity;
+    }
 }
 
 // 再生
@@ -314,6 +328,7 @@ void Imase::Animator::UpdateTime(float elapsedTime)
             return;
         }
 
+        // 時間を進める
         m_timeB += elapsedTime;
 
         if (clipB->duration > 0.0f)
@@ -321,6 +336,7 @@ void Imase::Animator::UpdateTime(float elapsedTime)
             m_timeB = fmod(m_timeB, clipB->duration);
         }
 
+        // ブレンドの割合を算出
         m_blendTimer += elapsedTime;
 
         if (m_blendDuration <= 0.0f)
@@ -333,6 +349,7 @@ void Imase::Animator::UpdateTime(float elapsedTime)
             m_blendWeight = std::clamp(m_blendWeight, 0.0f, 1.0f);
         }
 
+        // 次のアニメーションへ移行完了
         if (m_blendWeight >= 1.0f)
         {
             // 次のアニメーションへ
@@ -340,6 +357,7 @@ void Imase::Animator::UpdateTime(float elapsedTime)
             m_timeA = m_timeB;
             m_playMode = PlayMode::Single;
 
+            // clipBを初期化
             m_clipB = -1;
             m_blendTimer = 0.0f;
             m_blendWeight = 0.0f;

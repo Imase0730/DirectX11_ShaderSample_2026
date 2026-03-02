@@ -111,7 +111,7 @@ void Game::Render()
 
     // モデルの描画
     SimpleMath::Matrix world;
-//    m_model->Draw(context, world);
+    //m_model->Draw(context, world);
     m_model->Draw(context, world, &m_animator->GetWorldMatrices());
     // ------------------------------------------------------- //
 
@@ -216,13 +216,16 @@ void Game::CreateDeviceDependentResources()
 
     // シェーダーの作成
     m_shader = std::make_unique<Imase::BasicShader>(device);
+    m_Pshader = std::make_unique<Imase::PixelLightingShader>(device);
+    m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
     m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
 
     // モデルの作成
-    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Motion.imdl", m_effect.get());
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/A.imdl", m_effect.get());
 
+    // アニメーターの作成
     m_animator = std::make_unique<Imase::Animator>(*m_model.get());
 }
 

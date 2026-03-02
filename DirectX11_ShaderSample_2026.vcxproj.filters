@@ -20,6 +20,9 @@
     <Filter Include="ImaseLib\Shader">
       <UniqueIdentifier>{963b91af-4dd3-4a4d-b696-2316e2f8a02d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImaseLib\Animation">
+      <UniqueIdentifier>{e756c222-276b-40b5-922e-e638eb752d39}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
