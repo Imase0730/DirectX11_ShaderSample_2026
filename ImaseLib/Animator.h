@@ -45,6 +45,9 @@ namespace Imase
         // ノード情報への参照
         const std::vector<NodeInfo>& m_nodes;
         
+        // アニメションクリップ名とインデックスの対応表
+        std::unordered_map<std::string, int> m_animationTable;
+
         // 再生モード
         PlayMode m_playMode;
 
@@ -119,13 +122,13 @@ namespace Imase
         Animator(const Imase::Model& model);
 
         // 再生
-        void Play(uint32_t clipIndex, bool loop = true);
+        void Play(std::string animationName, bool loop = true);
 
         // 更新
         void Update(float elapsedTime);
 
         // 次のアニメーションへのクロスフェードする関数
-        void CrossFade(int nextClip, float duration);
+        void CrossFade(std::string nextAnimationName, float duration);
 
         // 各ノードのワールド行列を取得する関数
         const std::vector<DirectX::XMFLOAT4X4>& GetWorldMatrices() const;

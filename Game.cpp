@@ -45,7 +45,7 @@ void Game::Initialize(HWND window, int width, int height)
     m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, 0.0f);
     m_lightDirection.Normalize();
 
-    m_animator->Play(0, true);
+    m_animator->Play("ArmatureAction", true);
 
 }
 
@@ -108,6 +108,10 @@ void Game::Render()
     Imase::Effect* effect = m_model->GetEffect();
     effect->SetViewProjection(view, m_proj);
     effect->BeginFrame(context);
+
+    effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
+    effect->SetLightEnabled(1, false);
+    effect->SetLightEnabled(2, false);
 
     // ƒ‚ƒfƒ‹‚Ì•`‰æ
     SimpleMath::Matrix world;

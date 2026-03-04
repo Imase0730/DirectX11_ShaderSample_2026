@@ -41,12 +41,19 @@ Imase::Animator::Animator(const Imase::Model& model)
     {
         m = SimpleMath::Matrix::Identity;
     }
+
+    // アニメションクリップ名を登録
+    int i = 0;
+    while (const Imase::AnimationClip* anim = m_model.GetAnimation(i))
+    {
+        m_animationTable[anim->name] = i++;
+    }
 }
 
 // 再生
-void Imase::Animator::Play(uint32_t clipIndex, bool loop)
+void Imase::Animator::Play(std::string animationName, bool loop)
 {
-    m_clipA = clipIndex;
+    m_clipA = m_animationTable.at(animationName);
     m_timeA = 0.0f;
     m_playMode = PlayMode::Single;
     m_loop = loop;
@@ -98,9 +105,9 @@ const std::vector<DirectX::XMFLOAT4X4>& Imase::Animator::GetWorldMatrices() cons
 }
 
 // クロスフェードする関数
-void Imase::Animator::CrossFade(int nextClip, float duration)
+void Imase::Animator::CrossFade(std::string nextAnimationName, float duration)
 {
-    m_clipB = nextClip;
+    m_clipB = m_animationTable.at(nextAnimationName);
     m_timeB = 0.0f;
 
     m_blendDuration = duration;
