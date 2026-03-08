@@ -180,6 +180,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="A_anim.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="DirectXTK_Utilities\DebugDraw.h" />
     <ClInclude Include="DirectXTK_Utilities\ReadData.h" />

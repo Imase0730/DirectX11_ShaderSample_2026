@@ -23,10 +23,11 @@ namespace Imase
         constexpr uint32_t ConstantBuffer_b1 = 1 << 1;  // 定数バッファの役割（オブジェクト毎）
         constexpr uint32_t ConstantBuffer_b2 = 1 << 2;  // 定数バッファの役割（マテリアル）
 
-        constexpr uint32_t ViewProjection   = 1 << 2;   // b0
-        constexpr uint32_t Light            = 1 << 3;   // b0
-        constexpr uint32_t World            = 1 << 4;   // b1
-        constexpr uint32_t Material         = 1 << 5;   // b2
+        constexpr uint32_t ViewProjection    = 1 << 3;   // b0
+        constexpr uint32_t Light             = 1 << 4;   // b0
+        constexpr uint32_t World             = 1 << 5;   // b1
+        constexpr uint32_t UseSkin           = 1 << 6;   // b1
+        constexpr uint32_t Material          = 1 << 7;   // b2
     }
 
     // マテリアル用フラグ
@@ -80,7 +81,7 @@ namespace Imase
     // スキニング用行列（b3）
     struct SkinCB
     {
-        DirectX::XMMATRIX Bones[MaxBones];
+        DirectX::XMMATRIX SkinMatrices[MaxBones];
     };
 
     // ライト

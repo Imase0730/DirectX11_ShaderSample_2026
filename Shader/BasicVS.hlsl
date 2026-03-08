@@ -52,20 +52,15 @@ VSOutput main(VSInput vin)
 {
     VSOutput vout;
 
-    float4 pos = float4(vin.Position, 1.0f);
+    float4 pos = float4(vin.Position, 1.0);
 
     // スキン有り
     if (UseSkin)
     {
-        float4 skinnedPos = 0;
-        
-        [unroll]
-        for (int i = 0; i < 4; i++)
-        {
-            skinnedPos += mul(pos, Bones[vin.Joint[i]]) * vin.Weight[i];
-        }
-        
-        pos = skinnedPos;
+        pos = mul(pos, SkinMatrices[vin.Joint.x]) * vin.Weight.x
+            + mul(pos, SkinMatrices[vin.Joint.y]) * vin.Weight.y
+            + mul(pos, SkinMatrices[vin.Joint.z]) * vin.Weight.z
+            + mul(pos, SkinMatrices[vin.Joint.w]) * vin.Weight.w;
     }
     
     // 座標変換

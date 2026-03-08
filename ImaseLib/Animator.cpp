@@ -18,23 +18,19 @@ Imase::Animator::Animator(const Imase::Model& model)
     , m_nodes{ model.GetNodes() }
 	, m_loop{ true }
     , m_playMode{ PlayMode::Single }
-    , m_timeA{ 0.0f }
-    , m_timeB{ 0.0f }
-    , m_clipA{ -1 }
-    , m_clipB{ -1 }
+    , m_currentPoseState{ -1, 0.0f, std::vector<Transform>(model.GetNodes().size()) }
+    , m_nextPoseState{ -1, 0.0f, std::vector<Transform>(model.GetNodes().size()) }
     , m_blendDuration{ 0.0f }
     , m_blendTimer{ 0.0f }
     , m_blendWeight{ 0.0f }
+    , m_localMatrices{ std::vector<DirectX::XMFLOAT4X4>(model.GetNodes().size()) }
+    , m_worldMatrices{ std::vector<DirectX::XMFLOAT4X4>(model.GetNodes().size()) }
 {
-    // ノード数を取得
-    size_t nodeCount = model.GetNodes().size();
-
-    // ワークを確保
-    m_currentPose.transforms.resize(nodeCount);
-    m_tempPoseA.transforms.resize(nodeCount);
-    m_tempPoseB.transforms.resize(nodeCount);
-    m_localMatrices.resize(nodeCount);
-    m_worldMatrices.resize(nodeCount);
+    // ローカル行列を初期化
+    for (auto& m : m_localMatrices)
+    {
+        m = SimpleMath::Matrix::Identity;
+    }
 
     // ワールド行列を初期化
     for (auto& m : m_worldMatrices)
@@ -46,15 +42,35 @@ Imase::Animator::Animator(const Imase::Model& model)
     int i = 0;
     while (const Imase::AnimationClip* anim = m_model.GetAnimation(i))
     {
-        m_animationTable[anim->name] = i++;
+        m_animationIndexTable[anim->name] = i;
+        m_animationNameTable[i] = anim->name;
+        i++;
     }
+}
+
+// アニメションインデックスを取得する関数
+int Imase::Animator::GetAnimationIndex(std::string animationName)
+{
+
+    return m_animationIndexTable.at(animationName);
+}
+
+// アニメーション名を取得する関数
+std::string Imase::Animator::GetAnimationName(int animationIndex)
+{
+    return m_animationNameTable.at(animationIndex);
 }
 
 // 再生
 void Imase::Animator::Play(std::string animationName, bool loop)
 {
-    m_clipA = m_animationTable.at(animationName);
-    m_timeA = 0.0f;
+    Play(GetAnimationIndex(animationName), loop);
+}
+
+void Imase::Animator::Play(int animationIndex, bool loop)
+{
+    m_currentPoseState.m_clipIndex = animationIndex;
+    m_currentPoseState.m_time = 0.0f;
     m_playMode = PlayMode::Single;
     m_loop = loop;
 }
@@ -68,27 +84,28 @@ void Imase::Animator::Update(float elapsedTime)
     // 通常の再生
     if (m_playMode == PlayMode::Single)
     {
-        const AnimationClip* clipA = m_model.GetAnimation(m_clipA);
-        if (!clipA) return;
+        const AnimationClip* clip = m_model.GetAnimation(m_currentPoseState.m_clipIndex);
+        if (!clip) return;
 
-        ResetPoseToBind(m_currentPose);
-        SamplePose(*clipA, m_timeA, m_currentPose);
+        // 現在の時間のポーズを取得
+        SamplePose(*clip, m_currentPoseState.m_time, m_currentPoseState.m_pose);
     }
 
     // アニメーションブレンド有りの場合
     else if (m_playMode == PlayMode::Blend)
     {
-        const AnimationClip* clipA = m_model.GetAnimation(m_clipA);
-        const AnimationClip* clipB = m_model.GetAnimation(m_clipB);
+        const AnimationClip* clipA = m_model.GetAnimation(m_currentPoseState.m_clipIndex);
+        const AnimationClip* clipB = m_model.GetAnimation(m_nextPoseState.m_clipIndex);
         if (!clipA || !clipB) return;
 
-        ResetPoseToBind(m_tempPoseA);
-        SamplePose(*clipA, m_timeA, m_tempPoseA);
-        ResetPoseToBind(m_tempPoseB);
-        SamplePose(*clipB, m_timeB, m_tempPoseB);
+        // ブレンド元とブレンド先のポーズを取得
+        SamplePose(*clipA, m_currentPoseState.m_time, m_currentPoseState.m_pose);
+        SamplePose(*clipB, m_nextPoseState.m_time, m_nextPoseState.m_pose);
 
-        ResetPoseToBind(m_currentPose);
-        BlendPose(m_tempPoseA, m_tempPoseB, m_blendWeight, m_currentPose);
+        // アニメーションブレンド
+        Pose resultPose;
+        BlendPose(m_currentPoseState.m_pose, m_nextPoseState.m_pose, m_blendWeight, resultPose);
+        m_currentPoseState.m_pose = resultPose;
     }
 
     // 各ノードのローカル行列を生成する
@@ -104,11 +121,68 @@ const std::vector<DirectX::XMFLOAT4X4>& Imase::Animator::GetWorldMatrices() cons
     return m_worldMatrices;
 }
 
+// アニメーション名をアニメーションインデックス順で取得する関数
+const std::vector<std::string> Imase::Animator::GetAnimationNames() const
+{
+    // mapの要素をpairのvectorにコピー
+    std::vector<std::pair<std::string, int>> vec(m_animationIndexTable.begin(), m_animationIndexTable.end());
+
+    // アニメーションインデックスの昇順でソート
+    std::sort(vec.begin(), vec.end(), [](const auto& a, const auto& b)
+        {
+            return a.second < b.second; // 昇順
+        }
+    );
+
+    // キー(アニメーション名)だけを抽出
+    std::vector<std::string> keys;
+    keys.reserve(vec.size());
+    for (const auto& pair : vec)
+    {
+        keys.push_back(pair.first);
+    }
+
+    return keys;
+}
+
+// 再生時間を取得する関数
+float Imase::Animator::GetPlayTime() const
+{
+    return m_currentPoseState.m_time;
+}
+
+// アニメーションの長さ（所要時間）を取得する関数
+float Imase::Animator::GetAnimationDuration(int animationIndex) const
+{
+    const AnimationClip* clip = m_model.GetAnimation(animationIndex);
+    return clip->duration;
+}
+
+float Imase::Animator::GetRestTime() const
+{
+    float rest = GetAnimationDuration(m_currentPoseState.m_clipIndex) - GetPlayTime();
+
+    if (rest < 0.0f)
+        rest = 0.0f;
+
+    return rest;
+}
+
+int Imase::Animator::GetCurrentAnimationIndex()
+{
+    return m_currentPoseState.m_clipIndex;
+}
+
 // クロスフェードする関数
 void Imase::Animator::CrossFade(std::string nextAnimationName, float duration)
 {
-    m_clipB = m_animationTable.at(nextAnimationName);
-    m_timeB = 0.0f;
+    CrossFade(GetAnimationIndex(nextAnimationName), duration);
+}
+
+void Imase::Animator::CrossFade(int animationIndex, float duration)
+{
+    m_nextPoseState.m_clipIndex = animationIndex;
+    m_nextPoseState.m_time = 0.0f;
 
     m_blendDuration = duration;
     m_blendTimer = 0.0f;
@@ -203,6 +277,9 @@ void Imase::Animator::ResetPoseToBind(Pose& pose)
 // 再生時間のポーズを取得する関数
 void Imase::Animator::SamplePose(const AnimationClip& clip, float time, Pose& outPose)
 {
+    // ポーズをリセット
+    ResetPoseToBind(outPose);
+
     // 移動
     for (const auto& ch : clip.translations)
     {
@@ -225,9 +302,9 @@ void Imase::Animator::SamplePose(const AnimationClip& clip, float time, Pose& ou
 // 各ノードのローカル行列を生成する関数
 void Imase::Animator::BuildLocalMatrices()
 {
-    for (size_t i = 0; i < m_currentPose.transforms.size(); i++)
+    for (size_t i = 0; i < m_currentPoseState.m_pose.transforms.size(); i++)
     {
-        Transform& transform = m_currentPose.transforms[i];
+        Transform& transform = m_currentPoseState.m_pose.transforms[i];
 
         XMVECTOR t = XMLoadFloat3(&transform.translation);
         XMVECTOR r = XMLoadFloat4(&transform.rotation);
@@ -263,6 +340,8 @@ void Imase::Animator::BlendPose(const Pose& a, const Pose& b, float weight, Pose
 {
     size_t count = a.transforms.size();
 
+    outPose.transforms.resize(count);
+
     for (size_t i = 0; i < count; ++i)
     {
         // Translation
@@ -297,12 +376,12 @@ void Imase::Animator::BlendPose(const Pose& a, const Pose& b, float weight, Pose
 // 再生時間を進める関数
 void Imase::Animator::UpdateTime(float elapsedTime)
 {
-    m_timeA += elapsedTime;
+    m_currentPoseState.m_time += elapsedTime;
 
-    const AnimationClip* clipA = m_model.GetAnimation(m_clipA);
+    const AnimationClip* clipA = m_model.GetAnimation(m_currentPoseState.m_clipIndex);
     if (!clipA)
     {
-        m_timeA = 0.0f;
+        m_currentPoseState.m_time = 0.0f;
         return;
     }
 
@@ -311,24 +390,24 @@ void Imase::Animator::UpdateTime(float elapsedTime)
     {
         if (m_loop)
         {
-            m_timeA = fmod(m_timeA, clipA->duration);
-            if (m_timeA < 0.0f)
-                m_timeA += clipA->duration;
+            m_currentPoseState.m_time = fmod(m_currentPoseState.m_time, clipA->duration);
+            if (m_currentPoseState.m_time < 0.0f)
+                m_currentPoseState.m_time += clipA->duration;
         }
         else
         {
-            m_timeA = std::min(m_timeA, clipA->duration);
+            m_currentPoseState.m_time = std::min(m_currentPoseState.m_time, clipA->duration);
         }
     }
     else
     {
-        m_timeA = 0.0f;
+        m_currentPoseState.m_time = 0.0f;
     }
 
     // ----- ブレンド ----- //
     if (m_playMode == PlayMode::Blend)
     {
-        const AnimationClip* clipB = m_model.GetAnimation(m_clipB);
+        const AnimationClip* clipB = m_model.GetAnimation(m_nextPoseState.m_clipIndex);
         if (!clipB)
         {
             m_playMode = PlayMode::Single;
@@ -336,11 +415,11 @@ void Imase::Animator::UpdateTime(float elapsedTime)
         }
 
         // 時間を進める
-        m_timeB += elapsedTime;
+        m_nextPoseState.m_time += elapsedTime;
 
         if (clipB->duration > 0.0f)
         {
-            m_timeB = fmod(m_timeB, clipB->duration);
+            m_nextPoseState.m_time = fmod(m_nextPoseState.m_time, clipB->duration);
         }
 
         // ブレンドの割合を算出
@@ -360,15 +439,15 @@ void Imase::Animator::UpdateTime(float elapsedTime)
         if (m_blendWeight >= 1.0f)
         {
             // 次のアニメーションへ
-            m_clipA = m_clipB;
-            m_timeA = m_timeB;
+            m_currentPoseState.m_clipIndex = m_nextPoseState.m_clipIndex;
+            m_currentPoseState.m_time = m_nextPoseState.m_time;
             m_playMode = PlayMode::Single;
 
-            // clipBを初期化
-            m_clipB = -1;
+            m_nextPoseState.m_clipIndex = -1;
             m_blendTimer = 0.0f;
             m_blendWeight = 0.0f;
         }
     }
 }
+
 

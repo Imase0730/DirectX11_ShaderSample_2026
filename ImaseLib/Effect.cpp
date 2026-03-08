@@ -86,12 +86,23 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
         m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b1;
     }
 
+    // スキン有り・なしが変更された
+    if (m_dirtyFlags & EffectDirtyFlags::UseSkin)
+    {
+        m_dirtyFlags &= ~EffectDirtyFlags::UseSkin;
+        m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b1;
+    }
+
     // マテリアルが変更された
     if (m_dirtyFlags & EffectDirtyFlags::Material)
     {
         m_dirtyFlags &= ~EffectDirtyFlags::Material;
         m_dirtyFlags |= EffectDirtyFlags::ConstantBuffer_b2;
     }
+
+    // ----------------------------------------------------------- //
+    // 定数バッファ b1 b2 更新
+    // ----------------------------------------------------------- //
 
     // 変更があれば定数バッファを更新
     if (m_dirtyFlags & EffectDirtyFlags::ConstantBuffer_b1)
@@ -117,7 +128,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     context->VSSetConstantBuffers(0, 4, cbBuffers);
     context->PSSetConstantBuffers(0, 3, cbBuffers);
 
-    // サンプラーステートの設定
+    // サンプラーステートの設定（LinearWrap）
     context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
     // ベースカラー
@@ -196,7 +207,7 @@ void Imase::Effect::SetWorld(const DirectX::XMMATRIX& world)
 void Imase::Effect::SetUseSkin(bool useSkin)
 {
     m_useSkin = useSkin;
-    m_dirtyFlags |= EffectDirtyFlags::World;
+    m_dirtyFlags |= EffectDirtyFlags::UseSkin;
 }
 
 // グローバルアンビエント色を設定する関数
@@ -431,7 +442,7 @@ void Imase::Effect::UpdateSkinCB(ID3D11DeviceContext* context, const std::vector
 
     for (size_t i = 0; i < matrices.size(); ++i)
     {
-        cb.Bones[i] = XMMatrixTranspose(matrices[i]);
+        cb.SkinMatrices[i] = XMMatrixTranspose(matrices[i]);
     }
 
     // 定数バッファ更新(b3)

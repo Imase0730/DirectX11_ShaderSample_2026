@@ -40,7 +40,7 @@ cbuffer PerMaterialCB : register(b2)
 // 定数バッファ：スキン行列
 cbuffer SkinCB : register(b3)
 {
-    float4x4 Bones[128];
+    float4x4 SkinMatrices[128];
 };
 
 // 頂点シェーダーの入力用

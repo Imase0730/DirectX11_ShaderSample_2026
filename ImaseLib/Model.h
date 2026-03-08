@@ -15,6 +15,9 @@ namespace Imase
 	// モデルクラス
 	class Model
 	{
+		// Animatorをフレンド登録
+		friend class Animator;
+
 	private:
 
 		// エフェクトへのポインタ
@@ -53,15 +56,27 @@ namespace Imase
 		// スキン有りの場合 true
 		bool m_hasSkin;
 
+	private:
+
+		// ノードを取得する関数
+		const std::vector<Imase::NodeInfo>& GetNodes() const;
+
+		// アニメーションを取得する関数
+		const Imase::AnimationClip* GetAnimation(uint32_t index) const;
+
 	public:
 
 		// コンストラクタ
 		Model(ID3D11Device* device, Imase::Effect* pEffect);
 
 		// モデルデータ作成関数
-		static std::unique_ptr<Imase::Model> CreateFromImdl(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect);
+		static std::unique_ptr<Imase::Model> CreateFromImdl(
+			ID3D11Device* device,
+			std::wstring fname,
+			Imase::Effect* pEffect
+		);
 
-		// 描画関数（アニメーション用の行列追加版）
+		// 描画関数
 		void Draw(
 			ID3D11DeviceContext* context,
 			const DirectX::XMMATRIX& world,
@@ -70,12 +85,6 @@ namespace Imase
 
 		// エフェクトを取得する関数
 		Imase::Effect* GetEffect() const { return m_pEffect; }
-
-		// ノードを取得する関数
-		const std::vector<Imase::NodeInfo>& GetNodes() const;
-
-		// アニメーションを取得する関数
-		const Imase::AnimationClip* GetAnimation(uint32_t index) const;
 
 	};
 }

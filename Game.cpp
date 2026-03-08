@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "Game.h"
+#include "A_anim.h"
 
 extern void ExitGame() noexcept;
 
@@ -45,7 +46,9 @@ void Game::Initialize(HWND window, int width, int height)
     m_lightDirection = SimpleMath::Vector3(0.0f, -1.0f, 0.0f);
     m_lightDirection.Normalize();
 
-    m_animator->Play("ArmatureAction", true);
+    const std::vector<std::string> name = m_animator->GetAnimationNames();
+
+    m_animator->Play(AnimationIndex::walk, true);
 
 }
 
@@ -71,6 +74,19 @@ void Game::Update(DX::StepTimer const& timer)
 
     // デバッグカメラの更新
     m_debugCamera->Update();
+
+    auto key = Keyboard::Get().GetState();
+
+    if (key.A && m_animator->GetCurrentAnimationIndex() == AnimationIndex::walk)
+    {
+        m_animator->CrossFade(AnimationIndex::attack, 0.5f);
+    }
+
+    if ( m_animator->GetCurrentAnimationIndex() == AnimationIndex::attack
+      && m_animator->GetRestTime() < 0.5f )
+    {
+        m_animator->CrossFade(AnimationIndex::walk, 0.5f);
+    }
 
     // アニメーションの更新
     m_animator->Update(elapsedTime);
@@ -109,9 +125,9 @@ void Game::Render()
     effect->SetViewProjection(view, m_proj);
     effect->BeginFrame(context);
 
-    effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
-    effect->SetLightEnabled(1, false);
-    effect->SetLightEnabled(2, false);
+    //effect->SetLightDirection(0, SimpleMath::Vector3(0, -1, -1));
+    //effect->SetLightEnabled(1, false);
+    //effect->SetLightEnabled(2, false);
 
     // モデルの描画
     SimpleMath::Matrix world;

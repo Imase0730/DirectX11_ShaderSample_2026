@@ -78,6 +78,7 @@
     <ClInclude Include="ImaseLib\ImdlLoader.h">
       <Filter>ImaseLib</Filter>
     </ClInclude>
+    <ClInclude Include="A_anim.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
