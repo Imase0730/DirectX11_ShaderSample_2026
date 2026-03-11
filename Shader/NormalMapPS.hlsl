@@ -1,14 +1,26 @@
 #include "Common.hlsli"
 #include "NormalMap.hlsli"
 
-Texture2D Texture : register(t0);
-Texture2D NormalMap : register(t1);
+Texture2D BaseColorTex  : register(t0);
+Texture2D NormalTex     : register(t1);
+Texture2D MetalRoughTex : register(t2);
 SamplerState Sampler : register(s0);
 
 float4 main(VSOutput pin) : SV_Target
 {
+    float roughness = Roughness;
+    float metallic  = Metallic;
+
+    // ラフネスとメタリック
+    if (Flags & 0x4)
+    {
+        float2 mr = MetalRoughTex.Sample(Sampler, pin.TexCoord).gb;
+        roughness = mr.x;
+        metallic = mr.y;
+    }
+
     // 法線マップサンプル　(法線マップが2チャンネル：BC5圧縮)
-    float2 xy = NormalMap.Sample(Sampler, pin.TexCoord).rg * 2.0f - 1.0f;
+    float2 xy = NormalTex.Sample(Sampler, pin.TexCoord).rg * 2.0f - 1.0f;
     
     // Z再構築
     float z = sqrt(saturate(1.0f - dot(xy, xy)));
@@ -34,9 +46,9 @@ float4 main(VSOutput pin) : SV_Target
 
     float4 albedo = BaseColor;
 
-    // テクスチャ色
+    // ベースカラー
     if (Flags & 0x1)
-        albedo *= Texture.Sample(Sampler, pin.TexCoord);
+        albedo *= BaseColorTex.Sample(Sampler, pin.TexCoord);
 
 //    float3 diffuseColor = albedo.rgb * (1.0f - Metallic); // PBR用今はしない
     float3 diffuseColor = albedo.rgb;
@@ -61,10 +73,10 @@ float4 main(VSOutput pin) : SV_Target
         {
             // スペキュラ（PBRのメタリックとラフネスから簡易方法で算出）
             // ※F0の意味　Fresnel 0° reflectance「入射角 0度（＝正面から見たとき）の反射率」
-            float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo.rgb, Metallic);
-            float power = lerp(2.0f, 256.0f, (1 - Roughness) * (1 - Roughness));
+            float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo.rgb, metallic);
+            float power = lerp(2.0f, 256.0f, (1 - roughness) * (1 - roughness));
             float spec = pow(NdotH, power);
-            spec *= (1 - Roughness); // 強度減衰
+            spec *= (1 - roughness); // 強度減衰
             spec *= NdotL;
             specular += LightSpecularColor[i] * float4(F0, 1.0f) * spec;
         }

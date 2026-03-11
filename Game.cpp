@@ -135,6 +135,12 @@ void Game::Render()
     m_model->Draw(context, world, &m_animator->GetWorldMatrices());
     // ------------------------------------------------------- //
 
+    m_sp->Begin();
+
+    //m_sp->Draw(effect->GetTexture(2), SimpleMath::Vector2(0, 0));
+
+    m_sp->End();
+
     m_deviceResources->PIXEndEvent();
 
     // Show the new frame.
@@ -240,13 +246,15 @@ void Game::CreateDeviceDependentResources()
     m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_shader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
 
     // モデルの作成
-    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/A.imdl", m_effect.get());
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Test.imdl", m_effect.get());
 
     // アニメーターの作成
     m_animator = std::make_unique<Imase::Animator>(*m_model.get());
+
+    m_sp = std::make_unique<SpriteBatch>(context);
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

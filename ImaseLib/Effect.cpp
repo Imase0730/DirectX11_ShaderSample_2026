@@ -36,6 +36,7 @@ Imase::Effect::Effect(ID3D11Device* device, Imase::ShaderBase* pShader)
         desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
         desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
         desc.MaxLOD = FLT_MAX;
+
         DX::ThrowIfFailed(
             device->CreateSamplerState(&desc, m_samplerState.ReleaseAndGetAddressOf())
         );
@@ -154,6 +155,19 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
         ID3D11ShaderResourceView* nullSRV[] = { nullptr };
         context->PSSetShaderResources(1, 1, nullSRV);
     }
+
+    // ラフネスとメタリック
+    if (m_materials[m_materialIndex].metalRoughTexIndex >= 0)
+    {
+        ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].metalRoughTexIndex].Get() };
+        context->PSSetShaderResources(2, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(2, 1, nullSRV);
+    }
+
 }
 
 // ビュー行列とプロジェクション行列を設定する関数
@@ -423,6 +437,7 @@ void Imase::Effect::UpdatePerMaterialCB(ID3D11DeviceContext* context)
     cb.Roughness = m.roughnessFactor;
     if (m.baseColorTexIndex >= 0) cb.Flags |= FLAG_BASECOLOR_TEX;
     if (m.normalTexIndex >= 0) cb.Flags |= FLAG_NORMALMAP_TEX;
+    if (m.metalRoughTexIndex >= 0) cb.Flags |= FLAG_ROUGHNESS_METALLIC_TEX;
 
     // 定数バッファ更新(b2)
     D3D11_MAPPED_SUBRESOURCE mapped = {};

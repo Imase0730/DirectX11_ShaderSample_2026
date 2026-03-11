@@ -103,6 +103,8 @@ private:
 
     std::unique_ptr<Imase::Animator> m_animator;
 
+    std::unique_ptr<DirectX::SpriteBatch> m_sp;
+
 
 
 };

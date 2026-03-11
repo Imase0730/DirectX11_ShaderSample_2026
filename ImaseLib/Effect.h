@@ -33,8 +33,9 @@ namespace Imase
     // マテリアル用フラグ
     enum MaterialFlags
     {
-        FLAG_BASECOLOR_TEX  = 1 << 0,   // ベースカラー用テクスチャ使用有無
-        FLAG_NORMALMAP_TEX  = 1 << 1,   // 法線マップ用テクスチャ使用有無
+        FLAG_BASECOLOR_TEX = 1 << 0,            // ベースカラー用テクスチャ使用有無
+        FLAG_NORMALMAP_TEX = 1 << 1,            // 法線マップ用テクスチャ使用有無
+        FLAG_ROUGHNESS_METALLIC_TEX = 1 << 2,   // ラフネス、メタリック用テクスチャ使用有無
     };
 
     // ライトの最大数
@@ -200,6 +201,11 @@ namespace Imase
 
         // 定数バッファ更新関数（スキン行列）
         void UpdateSkinCB(ID3D11DeviceContext* context, const std::vector<DirectX::XMMATRIX>& matrices);
+
+        ID3D11ShaderResourceView* GetTexture(int no)
+        {
+            return m_textures[no].Get();
+        }
 
     private:
     
