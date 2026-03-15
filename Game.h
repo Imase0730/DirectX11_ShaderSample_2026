@@ -105,6 +105,10 @@ private:
 
     std::unique_ptr<DirectX::SpriteBatch> m_sp;
 
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_cubeMap;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_cubeTex;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_cubeRTV;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_cubeSRV;
 
-
+    DirectX::SimpleMath::Matrix m_views[6];
 };

@@ -10,13 +10,16 @@ float4 main(VSOutput pin) : SV_Target
 {
     float roughness = Roughness;
     float metallic  = Metallic;
+    float ao = 1.0f;
 
-    // ラフネスとメタリック
+    // アンビエントオクルージョン、ラフネスとメタリック
     if (Flags & 0x4)
     {
-        float2 mr = MetalRoughTex.Sample(Sampler, pin.TexCoord).gb;
-        roughness = mr.x;
-        metallic = mr.y;
+        float3 orm = MetalRoughTex.Sample(Sampler, pin.TexCoord).rgb;
+
+        ao = orm.r;
+        roughness = orm.g;
+        metallic = orm.b;
     }
 
     // 法線マップサンプル　(法線マップが2チャンネル：BC5圧縮)
@@ -50,10 +53,11 @@ float4 main(VSOutput pin) : SV_Target
     if (Flags & 0x1)
         albedo *= BaseColorTex.Sample(Sampler, pin.TexCoord);
 
-//    float3 diffuseColor = albedo.rgb * (1.0f - Metallic); // PBR用今はしない
+    //float3 diffuseColor = albedo.rgb * (1.0f - Metallic); // PBR用今はしない
     float3 diffuseColor = albedo.rgb;
+
     // 金属は環境拡散は持たない
-    float4 diffuse = AmbientLightColor * float4(diffuseColor, albedo.a);
+    float4 diffuse = AmbientLightColor * float4(diffuseColor * ao, albedo.a);
     float4 specular = 0;
     
     [unroll]

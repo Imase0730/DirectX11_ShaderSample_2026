@@ -248,13 +248,73 @@ void Game::CreateDeviceDependentResources()
     // エフェクトの作成
     m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
 
+    m_effect->LoadIrradianceTexture(device, L"Resources/Textures/Irradiance.dds");
+    m_effect->LoadPrefilterTexture(device, L"Resources/Textures/prefilter.dds");
+    m_effect->LoadBrdfTexture(device, L"Resources/Textures/brdf.dds");
+
     // モデルの作成
-    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Test.imdl", m_effect.get());
+    m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
 
     // アニメーターの作成
     m_animator = std::make_unique<Imase::Animator>(*m_model.get());
 
     m_sp = std::make_unique<SpriteBatch>(context);
+
+    //CreateDDSTextureFromFile(device, L"Textures/horn-koppe_spring_4k.dds", nullptr, m_cubeMap.ReleaseAndGetAddressOf());
+
+    //{
+    //    // Texture2D作成
+    //    D3D11_TEXTURE2D_DESC desc = {};
+    //    desc.Width = 512;
+    //    desc.Height = 512;
+    //    desc.MipLevels = 1; // <- MipMap生成はしない
+    //    desc.ArraySize = 6;
+    //    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    //    desc.SampleDesc.Count = 1;
+    //    desc.SampleDesc.Quality = 0;
+
+    //    desc.BindFlags =
+    //        D3D11_BIND_RENDER_TARGET |
+    //        D3D11_BIND_SHADER_RESOURCE;
+
+    //    desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+    //    device->CreateTexture2D(
+    //        &desc,
+    //        nullptr,
+    //        m_cubeTex.ReleaseAndGetAddressOf());
+
+
+    //    // RTV作成
+    //    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    //    rtvDesc.Format = desc.Format;
+    //    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+
+    //    rtvDesc.Texture2DArray.MipSlice = 0;
+    //    rtvDesc.Texture2DArray.ArraySize = 6;
+    //    rtvDesc.Texture2DArray.FirstArraySlice = 0;
+
+    //    device->CreateRenderTargetView(
+    //        m_cubeTex.Get(),
+    //        &rtvDesc,
+    //        m_cubeRTV.ReleaseAndGetAddressOf());
+
+    //    // SRV作成
+    //    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+
+    //    srvDesc.Format = desc.Format;
+    //    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+
+    //    srvDesc.TextureCube.MipLevels = 1;
+    //    srvDesc.TextureCube.MostDetailedMip = 0;
+
+    //    device->CreateShaderResourceView(
+    //        m_cubeTex.Get(),
+    //        &srvDesc,
+    //        m_cubeSRV.ReleaseAndGetAddressOf());
+    //}
+
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.

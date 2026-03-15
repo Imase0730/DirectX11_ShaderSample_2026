@@ -152,6 +152,15 @@ namespace Imase
         // スキン使用有無
         bool m_useSkin;
 
+        // Irradiance Map(t3)
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_irradianceMap;
+
+        // Prefilter Map(t4)
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_prefilterMap;
+
+        // BRDF LUT(t5)
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_brdfLut;
+
     public:
 
         // コンストラクタ
@@ -202,10 +211,14 @@ namespace Imase
         // 定数バッファ更新関数（スキン行列）
         void UpdateSkinCB(ID3D11DeviceContext* context, const std::vector<DirectX::XMMATRIX>& matrices);
 
-        ID3D11ShaderResourceView* GetTexture(int no)
-        {
-            return m_textures[no].Get();
-        }
+        // Irradiance Map(t3)
+        void LoadIrradianceTexture(ID3D11Device* device, const wchar_t* fname);
+
+        // Prefilter Map(t4)
+        void LoadPrefilterTexture(ID3D11Device* device, const wchar_t* fname);
+
+        // BRDF LUT(t5)
+        void LoadBrdfTexture(ID3D11Device* device, const wchar_t* fname);
 
     private:
     

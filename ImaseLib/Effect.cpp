@@ -132,7 +132,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     // サンプラーステートの設定（LinearWrap）
     context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
-    // ベースカラー
+    // ベースカラー(BaseColor)
     if (m_materials[m_materialIndex].baseColorTexIndex >= 0)
     {
         ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].baseColorTexIndex].Get() };
@@ -144,7 +144,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
         context->PSSetShaderResources(0, 1, nullSRV);
     }
 
-    // 法線マップ
+    // 法線マップ(NormalMap)
     if (m_materials[m_materialIndex].normalTexIndex >= 0)
     {
         ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].normalTexIndex].Get() };
@@ -156,7 +156,7 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
         context->PSSetShaderResources(1, 1, nullSRV);
     }
 
-    // ラフネスとメタリック
+    // アンビエントオクルージョンとラフネスとメタリック(ORM)
     if (m_materials[m_materialIndex].metalRoughTexIndex >= 0)
     {
         ID3D11ShaderResourceView* srv[] = { m_textures[m_materials[m_materialIndex].metalRoughTexIndex].Get() };
@@ -166,6 +166,45 @@ void Imase::Effect::Apply(ID3D11DeviceContext* context)
     {
         ID3D11ShaderResourceView* nullSRV[] = { nullptr };
         context->PSSetShaderResources(2, 1, nullSRV);
+    }
+
+    // 拡散IBL
+    // 周囲の風景（環境マップ）から「どの方向から、どれくらいの強さの光が届いているか」を平均化・平滑化して記録したマップ
+    if (m_irradianceMap)
+    {
+        ID3D11ShaderResourceView* srv[] = { m_irradianceMap.Get() };
+        context->PSSetShaderResources(3, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(3, 1, nullSRV);
+    }
+
+    // 鏡面IBL
+    // 周囲の環境画像を「光の反射」として物体に映り込ませるマップ
+    if (m_prefilterMap)
+    {
+        ID3D11ShaderResourceView* srv[] = { m_prefilterMap.Get() };
+        context->PSSetShaderResources(4, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(4, 1, nullSRV);
+    }
+
+    // BRDF LUT（Bidirectional Reflectance Distribution Function Look-Up Table）
+    // 物理ベースレンダリング（PBR）において、光の反射計算を高速化するためにあらかじめ計算結果を保存しておく画像データ
+    if (m_brdfLut)
+    {
+        ID3D11ShaderResourceView* srv[] = { m_brdfLut.Get() };
+        context->PSSetShaderResources(5, 1, srv);
+    }
+    else
+    {
+        ID3D11ShaderResourceView* nullSRV[] = { nullptr };
+        context->PSSetShaderResources(5, 1, nullSRV);
     }
 
 }
@@ -467,6 +506,27 @@ void Imase::Effect::UpdateSkinCB(ID3D11DeviceContext* context, const std::vector
     );
     memcpy(mapped.pData, &cb, sizeof(cb));
     context->Unmap(m_skinCB.Get(), 0);
+}
+
+void Imase::Effect::LoadIrradianceTexture(ID3D11Device* device, const wchar_t* fname)
+{
+    DX::ThrowIfFailed(
+        CreateDDSTextureFromFile(device, fname, nullptr, m_irradianceMap.ReleaseAndGetAddressOf())
+    );
+}
+
+void Imase::Effect::LoadPrefilterTexture(ID3D11Device* device, const wchar_t* fname)
+{
+    DX::ThrowIfFailed(
+        CreateDDSTextureFromFile(device, fname, nullptr, m_prefilterMap.ReleaseAndGetAddressOf())
+    );
+}
+
+void Imase::Effect::LoadBrdfTexture(ID3D11Device* device, const wchar_t* fname)
+{
+    DX::ThrowIfFailed(
+        CreateDDSTextureFromFile(device, fname, nullptr, m_brdfLut.ReleaseAndGetAddressOf())
+    );
 }
 
 // ライトの番号を検証する関数
