@@ -246,7 +246,7 @@ void Game::CreateDeviceDependentResources()
     m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_Pshader.get());
 
     m_effect->LoadIrradianceTexture(device, L"Resources/Textures/Irradiance.dds");
     m_effect->LoadPrefilterTexture(device, L"Resources/Textures/prefilter.dds");

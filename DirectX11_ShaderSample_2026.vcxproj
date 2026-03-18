@@ -235,6 +235,7 @@
     <None Include="packages.config" />
     <None Include="Shader\Common.hlsli" />
     <None Include="Shader\Basic.hlsli" />
+    <None Include="Shader\Lighting.hlsli" />
     <None Include="Shader\NormalMap.hlsli" />
     <None Include="Shader\PixelLighting.hlsli" />
   </ItemGroup>

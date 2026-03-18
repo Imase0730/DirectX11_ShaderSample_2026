@@ -1,3 +1,5 @@
+#ifndef PIXEL_LIGHTING
+#define PIXEL_LIGHTING
 
 // 頂点シェーダーの出力用
 struct VSOutput
@@ -8,3 +10,4 @@ struct VSOutput
     float4 Position     : SV_POSITION;  // 位置
 };
 
+#endif // PIXEL_LIGHTING

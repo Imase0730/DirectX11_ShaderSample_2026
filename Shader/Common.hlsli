@@ -1,3 +1,5 @@
+#ifndef COMMON
+#define COMMON
 
 // 定数バッファ：フレームで１回更新
 cbuffer PerFrameCB : register(b0)
@@ -53,3 +55,5 @@ struct VSInput
     uint4 Joint     : BLENDINDICES; // ジョイントインデックス
     float4 Weight   : BLENDWEIGHT;  // ウエイト
 };
+
+#endif  // COMMON
