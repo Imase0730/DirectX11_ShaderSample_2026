@@ -4,6 +4,7 @@
   <PropertyGroup Label="UserMacros">
     <cso>Resources/Shaders/</cso>
     <dds>Resources/Textures/</dds>
+    <cmo>CMO/</cmo>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup>
@@ -14,6 +15,12 @@
     <ImageContentTask>
       <ContentOutput>$(dds)%(Filename).dds</ContentOutput>
     </ImageContentTask>
+    <MeshContentTask>
+      <ContentOutput>$(cmo)%(Filename).cmo</ContentOutput>
+    </MeshContentTask>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)Tools\CmoPathCut.bat" "$(ProjectDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="cso">
@@ -21,6 +28,9 @@
     </BuildMacro>
     <BuildMacro Include="dds">
       <Value>$(dds)</Value>
+    </BuildMacro>
+    <BuildMacro Include="cmo">
+      <Value>$(cmo)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

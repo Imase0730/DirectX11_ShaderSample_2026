@@ -93,6 +93,7 @@ namespace DX
 #include "VertexTypes.h"
 #include "Effects.h"
 #include "DDSTextureLoader.h"
+#include "Model.h"
 
 // DirectXTK_Unitilites
 #include "DirectXTK_Utilities/DebugDraw.h"

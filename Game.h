@@ -11,9 +11,9 @@
 #include "ImaseLib/GridFloor.h"
 #include "ImaseLib/Effect.h"
 #include "ImaseLib/Model.h"
-#include "ImaseLib/BasicShader.h"
-#include "ImaseLib/NormalMapShader.h"
-#include "ImaseLib/PixelLightingShader.h"
+#include "ImaseLib/Shaders/BasicShader.h"
+#include "ImaseLib/Shaders/NormalMapShader.h"
+#include "ImaseLib/Shaders/PixelLightingShader.h"
 #include "ImaseLib/Animator.h"
 
 #include "SpriteBatch.h"
@@ -111,4 +111,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_cubeSRV;
 
     DirectX::SimpleMath::Matrix m_views[6];
+
+    std::unique_ptr<DirectX::Model> m_dxtkModel;
 };

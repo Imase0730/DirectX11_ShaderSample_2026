@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------------------
 #pragma once
 
-#include "ShaderBase.h"
+#include "Shaders/ShaderBase.h"
 #include "Imdl.h"
 
 namespace Imase

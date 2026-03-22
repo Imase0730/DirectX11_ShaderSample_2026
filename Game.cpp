@@ -132,7 +132,16 @@ void Game::Render()
     // モデルの描画
     SimpleMath::Matrix world;
     //m_model->Draw(context, world);
+    world = SimpleMath::Matrix::CreateTranslation(-2, 0, 2);
     m_model->Draw(context, world, &m_animator->GetWorldMatrices());
+    world = SimpleMath::Matrix::CreateTranslation(2, 0, -2);
+    m_model->Draw(context, world, &m_animator->GetWorldMatrices());
+
+    world = SimpleMath::Matrix::CreateTranslation(2, 0, 2);
+    m_dxtkModel->Draw(context, *m_states, world, view, m_proj);
+
+    world = SimpleMath::Matrix::CreateTranslation(-2, 0, -2);
+    m_dxtkModel->Draw(context, *m_states, world, view, m_proj);
     // ------------------------------------------------------- //
 
     m_sp->Begin();
@@ -246,7 +255,7 @@ void Game::CreateDeviceDependentResources()
     m_Nshader = std::make_unique<Imase::NormalMapShader>(device);
 
     // エフェクトの作成
-    m_effect = std::make_unique<Imase::Effect>(device, m_Pshader.get());
+    m_effect = std::make_unique<Imase::Effect>(device, m_Nshader.get());
 
     m_effect->LoadIrradianceTexture(device, L"Resources/Textures/Irradiance.dds");
     m_effect->LoadPrefilterTexture(device, L"Resources/Textures/prefilter.dds");
@@ -254,6 +263,19 @@ void Game::CreateDeviceDependentResources()
 
     // モデルの作成
     m_model = Imase::Model::CreateFromImdl(device, L"Resources/Models/Dice.imdl", m_effect.get());
+
+    EffectFactory fx(device);
+    fx.SetDirectory(L"Resources/Models");
+    m_dxtkModel = Model::CreateFromCMO(device, L"Resources/Models/Dice.cmo", fx);
+    m_dxtkModel->UpdateEffects([&](IEffect* effect)
+        {
+            auto basicEffect = dynamic_cast<BasicEffect*>(effect);
+            if (basicEffect)
+            {
+                basicEffect->SetPerPixelLighting(true);
+            }
+        }
+    );
 
     // アニメーターの作成
     m_animator = std::make_unique<Imase::Animator>(*m_model.get());
