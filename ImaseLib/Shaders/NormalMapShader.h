@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+ï»¿//--------------------------------------------------------------------------------------
 // File: NormalMapShader.h
 //
-// –@üƒ}ƒbƒvƒVƒF[ƒ_[
+// æ³•ç·šãƒãƒƒãƒ—ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -16,7 +16,7 @@ namespace Imase
 	{
     public:
 
-        // ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        // ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         NormalMapShader(ID3D11Device* device)
             : ShaderBase(device, L"Resources/Shaders/NormalMapVS.cso", L"Resources/Shaders/NormalMapPS.cso")
         {

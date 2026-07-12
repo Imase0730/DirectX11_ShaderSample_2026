@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+ï»¿//--------------------------------------------------------------------------------------
 // File: Model.cpp
 //
-// ImdlŒ`®‚Ìƒ‚ƒfƒ‹ƒf[ƒ^‚ğ•`‰æ‚·‚éƒNƒ‰ƒX
+// Imdlå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ‡ãƒ¼ã‚¿ã‚’æç”»ã™ã‚‹ã‚¯ãƒ©ã‚¹
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -15,18 +15,18 @@ using namespace Imase;
 
 #include "DDSTextureLoader.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 	: m_pEffect{ pEffect }
 	, m_hasSkin{ false }
 {
-	// ----- ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg ----- //
+	// ----- ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆ ----- //
 	{
-		// ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg‚Ìì¬
+		// ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆã®ä½œæˆ
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_BACK;
-		desc.FrontCounterClockwise = TRUE;	// ”½Œv‰ñ‚è‚ª•\iCCWj
+		desc.FrontCounterClockwise = TRUE;	// åæ™‚è¨ˆå›ã‚ŠãŒè¡¨ï¼ˆCCWï¼‰
 		desc.DepthBias = 0;
 		desc.DepthBiasClamp = 0.0f;
 		desc.SlopeScaledDepthBias = 0.0f;
@@ -39,9 +39,9 @@ Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 		);
 	}
 
-	// ----- [“xƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg ----- //
+	// ----- æ·±åº¦ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆ ----- //
 	{
-		// [“xƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg‚Ìì¬
+		// æ·±åº¦ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆã®ä½œæˆ
 		D3D11_DEPTH_STENCIL_DESC desc = {};
 		desc.DepthEnable = TRUE;
 		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -52,14 +52,14 @@ Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 		);
 	}
 
-	// ----- ƒuƒŒƒ“ƒhƒXƒe[ƒg ----- //
+	// ----- ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ ----- //
 	{
-		// ƒuƒŒƒ“ƒhƒXƒe[ƒg‚Ìì¬
+		// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆã®ä½œæˆ
 		D3D11_BLEND_DESC desc = {};
 		desc.AlphaToCoverageEnable = FALSE;
 		desc.IndependentBlendEnable = FALSE;
 
-		// ƒXƒgƒŒ[ƒgƒAƒ‹ƒtƒ@‚Ìİ’è
+		// ã‚¹ãƒˆãƒ¬ãƒ¼ãƒˆã‚¢ãƒ«ãƒ•ã‚¡ã®è¨­å®š
 		desc.RenderTarget[0].BlendEnable = TRUE;
 		desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -75,7 +75,7 @@ Imase::Model::Model(ID3D11Device* device, Imase::Effect* pEffect)
 	}
 }
 
-// ƒ‚ƒfƒ‹ƒf[ƒ^ì¬ŠÖ”
+// ãƒ¢ãƒ‡ãƒ«ãƒ‡ãƒ¼ã‚¿ä½œæˆé–¢æ•°
 std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device, std::wstring fname, Imase::Effect* pEffect)
 {
 	std::vector<TextureEntry> textures;
@@ -85,7 +85,7 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 
 	auto model = std::make_unique<Model>(device, pEffect);
 
-	// IMDLƒtƒ@ƒCƒ‹‚Ìƒ[ƒh
+	// IMDLãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ­ãƒ¼ãƒ‰
 	HRESULT hr = ImdlLoader::LoadImdl(
 		fname,
 		textures, materials,
@@ -97,16 +97,16 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 		OutputDebugString(L"Failed to load IMDL file.\n");
 	}
 
-	// ƒXƒLƒ“—L‚èƒtƒ‰ƒO
+	// ã‚¹ã‚­ãƒ³æœ‰ã‚Šãƒ•ãƒ©ã‚°
 	model->m_hasSkin = !model->m_skins.empty();
 
-	// ƒGƒtƒFƒNƒg‚ÉƒeƒNƒXƒ`ƒƒ‚ÌƒVƒFƒ_[ƒŠƒ\[ƒX‚ğì¬‚µ‚Ä“o˜^
+	// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã«ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®ã‚·ã‚§ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ã‚’ä½œæˆã—ã¦ç™»éŒ²
 	model->GetEffect()->RegisterTextures(device, textures);
 
-	// ƒGƒtƒFƒNƒg‚Éƒ}ƒeƒŠƒAƒ‹‚ğ“o˜^
+	// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã«ãƒãƒ†ãƒªã‚¢ãƒ«ã‚’ç™»éŒ²
 	model->GetEffect()->RegisterMaterials(materials);
 
-	// ’¸“_ƒoƒbƒtƒ@‚Ìì¬
+	// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
 	{
 		D3D11_BUFFER_DESC desc = {};
 		desc.ByteWidth = static_cast<UINT>(sizeof(VertexPositionNormalTextureTangent) * vertices.size());
@@ -121,9 +121,9 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 		);
 	}
 
-	// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@ì¬
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡ä½œæˆ
 	{
-		// ƒCƒ“ƒfƒbƒNƒX’¸“_ƒoƒbƒtƒ@‚Ìì¬
+		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
 		D3D11_BUFFER_DESC desc = {};
 		desc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * indices.size());
 		desc.Usage = D3D11_USAGE_DEFAULT;
@@ -140,41 +140,41 @@ std::unique_ptr<Imase::Model> Imase::Model::CreateFromImdl(ID3D11Device* device,
 	return model;
 }
 
-// •`‰æŠÖ”
+// æç”»é–¢æ•°
 void Imase::Model::Draw(
 	ID3D11DeviceContext* context,
 	const DirectX::XMMATRIX& world,
 	const std::vector<DirectX::XMFLOAT4X4>* animatedWorldMatrices
 )
 {
-	// ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg‚Ìİ’è
+	// ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆã®è¨­å®š
 	context->RSSetState(m_rasterizerState.Get());
 
-	// [“xƒXƒeƒ“ƒVƒ‹ƒoƒbƒtƒ@‚Ìİ’è
+	// æ·±åº¦ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ãƒãƒƒãƒ•ã‚¡ã®è¨­å®š
 	context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
-	// ƒuƒŒƒ“ƒhƒXƒe[ƒg‚Ìİ’è
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆã®è¨­å®š
 	context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
 
-	// ’¸“_ƒoƒbƒtƒ@‚Ìİ’è
+	// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®è¨­å®š
 	ID3D11Buffer* buffers[] = { m_vertexBuffer.Get() };
 	UINT stride = sizeof(VertexPositionNormalTextureTangent);
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 
-	// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@‚Ìİ’è
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡ã®è¨­å®š
 	context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-	// ƒgƒ|ƒƒW[‚Ìİ’è
+	// ãƒˆãƒãƒ­ã‚¸ãƒ¼ã®è¨­å®š
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ---- ƒm[ƒhs—ñ€”õ ---- //
+	// ---- ãƒãƒ¼ãƒ‰è¡Œåˆ—æº–å‚™ ---- //
 
 	std::vector<XMMATRIX> worldMatrices(m_nodes.size());
 
 	if (animatedWorldMatrices)
 	{
-		// š ƒAƒjƒ[ƒVƒ‡ƒ“‚ ‚è
+		// â˜… ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚ã‚Š
 		for (size_t i = 0; i < m_nodes.size(); ++i)
 		{
 			worldMatrices[i] = XMLoadFloat4x4(&(*animatedWorldMatrices)[i]) * world;
@@ -182,7 +182,7 @@ void Imase::Model::Draw(
 	}
 	else
 	{
-		// š Ã“Iƒm[ƒhŒvZ
+		// â˜… é™çš„ãƒãƒ¼ãƒ‰è¨ˆç®—
 		for (size_t i = 0; i < m_nodes.size(); ++i)
 		{
 			const NodeInfo& node = m_nodes[i];
@@ -206,19 +206,19 @@ void Imase::Model::Draw(
 		}
 	}
 
-	// ----- ƒƒbƒVƒ…•`‰æ ----- //
+	// ----- ãƒ¡ãƒƒã‚·ãƒ¥æç”» ----- //
 
 	for (size_t nodeIndex = 0; nodeIndex < m_nodes.size(); ++nodeIndex)
 	{
 		const auto& node = m_nodes[nodeIndex];
 
-		// ƒƒbƒVƒ…‚È‚µ
+		// ãƒ¡ãƒƒã‚·ãƒ¥ãªã—
 		if (node.meshGroupIndex == -1) continue;
 
-		// ƒ[ƒ‹ƒhs—ñ
+		// ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—
 		XMMATRIX nodeWorld = worldMatrices[nodeIndex];
 
-		// ƒXƒLƒjƒ“ƒOƒAƒjƒ[ƒVƒ‡ƒ“‚·‚é‚©H
+		// ã‚¹ã‚­ãƒ‹ãƒ³ã‚°ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã™ã‚‹ã‹ï¼Ÿ
 		bool useSkin = (m_hasSkin && node.skinIndex >= 0);
 
 		if (useSkin)
@@ -238,7 +238,7 @@ void Imase::Model::Draw(
 				skinMatrices[i] = ibm * jointWorld;
 			}
 
-			// ƒXƒLƒ“s—ñ‚ğXV
+			// ã‚¹ã‚­ãƒ³è¡Œåˆ—ã‚’æ›´æ–°
 			m_pEffect->UpdateSkinCB(context, skinMatrices);
 		}
 
@@ -259,13 +259,13 @@ void Imase::Model::Draw(
 	}
 }
 
-// ƒm[ƒh‚ğæ“¾‚·‚éŠÖ”
+// ãƒãƒ¼ãƒ‰ã‚’å–å¾—ã™ã‚‹é–¢æ•°
 const std::vector<Imase::NodeInfo>& Imase::Model::GetNodes() const
 {
 	return m_nodes;
 }
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“‚ğæ“¾‚·‚éŠÖ”
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å–å¾—ã™ã‚‹é–¢æ•°
 const Imase::AnimationClip* Imase::Model::GetAnimation(uint32_t index) const
 {
 	if (index >= m_animations.size())

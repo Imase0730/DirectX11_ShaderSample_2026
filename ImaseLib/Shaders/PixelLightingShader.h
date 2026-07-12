@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+ï»¿//--------------------------------------------------------------------------------------
 // File: PixelLightingShader.h
 //
-// ƒsƒNƒZƒ‹ƒ‰ƒCƒeƒBƒ“ƒOƒVƒF[ƒ_[
+// ãƒ”ã‚¯ã‚»ãƒ«ãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -16,7 +16,7 @@ namespace Imase
 	{
     public:
 
-        // ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        // ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         PixelLightingShader(ID3D11Device* device)
             : ShaderBase(device, L"Resources/Shaders/PixelLightingVS.cso", L"Resources/Shaders/PixelLightingPS.cso")
         {

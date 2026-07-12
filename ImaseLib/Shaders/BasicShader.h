@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+Ôªø//--------------------------------------------------------------------------------------
 // File: BasicShader.h
 //
-// ÉxÅ[ÉVÉbÉNÉVÉFÅ[É_Å[
+// „Éô„Éº„Ç∑„ÉÉ„ÇØ„Ç∑„Çß„Éº„ÉÄ„Éº
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -16,7 +16,7 @@ namespace Imase
 	{
     public:
 
-        // ÉRÉìÉXÉgÉâÉNÉ^
+        // „Ç≥„É≥„Çπ„Éà„É©„ÇØ„Çø
         BasicShader(ID3D11Device* device)
             : ShaderBase(device, L"Resources/Shaders/BasicVS.cso", L"Resources/Shaders/BasicPS.cso")
         {

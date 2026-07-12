@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+ï»¿//--------------------------------------------------------------------------------------
 // File: ImdlLoader.cpp
 //
-// ImdlŒ`®‚Ìƒ‚ƒfƒ‹ƒf[ƒ^‚ğƒ[ƒh‚·‚éƒNƒ‰ƒX
+// Imdlå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ‡ãƒ¼ã‚¿ã‚’ãƒ­ãƒ¼ãƒ‰ã™ã‚‹ã‚¯ãƒ©ã‚¹
 //
 // Date: 2025.3.1
 // Author: Hideyasu Imase
@@ -10,7 +10,7 @@
 #include "ImdlLoader.h"
 #include "ChunkIO.h"
 
-// ƒ[ƒh‚·‚éŠÖ”iƒ}ƒeƒŠƒAƒ‹j
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆãƒãƒ†ãƒªã‚¢ãƒ«ï¼‰
 Imase::MaterialInfo Imase::ImdlLoader::DeserializeMaterial(BinaryReader& reader)
 {
 	MaterialInfo m{};
@@ -35,7 +35,7 @@ Imase::MaterialInfo Imase::ImdlLoader::DeserializeMaterial(BinaryReader& reader)
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”i’¸“_î•ñj
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆé ‚ç‚¹æƒ…å ±ï¼‰
 Imase::VertexPositionNormalTextureTangent Imase::ImdlLoader::DeserializeVertex(BinaryReader& reader)
 {
 	VertexPositionNormalTextureTangent v{};
@@ -69,7 +69,7 @@ Imase::VertexPositionNormalTextureTangent Imase::ImdlLoader::DeserializeVertex(B
 	return v;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iƒƒbƒVƒ…j
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆãƒ¡ãƒƒã‚·ãƒ¥ï¼‰
 Imase::SubMeshInfo Imase::ImdlLoader::DeserializeSubMesh(BinaryReader& reader)
 {
 	SubMeshInfo m{};
@@ -79,7 +79,7 @@ Imase::SubMeshInfo Imase::ImdlLoader::DeserializeSubMesh(BinaryReader& reader)
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iƒƒbƒVƒ…ƒOƒ‹[ƒvj
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆãƒ¡ãƒƒã‚·ãƒ¥ã‚°ãƒ«ãƒ¼ãƒ—ï¼‰
 Imase::MeshGroupInfo Imase::ImdlLoader::DeserializeMeshGroup(BinaryReader& reader)
 {
 	MeshGroupInfo m{};
@@ -88,6 +88,7 @@ Imase::MeshGroupInfo Imase::ImdlLoader::DeserializeMeshGroup(BinaryReader& reade
 	return m;
 }
 
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆãƒãƒ¼ãƒ‰ï¼‰
 Imase::NodeInfo Imase::ImdlLoader::DeserializeNode(BinaryReader& reader)
 {
 	NodeInfo m{};
@@ -112,7 +113,7 @@ Imase::NodeInfo Imase::ImdlLoader::DeserializeNode(BinaryReader& reader)
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iVector3‚Ì”z—ñj
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆVector3ã®é…åˆ—ï¼‰
 Imase::AnimationChannelVec3 Imase::ImdlLoader::DeserializeChannelVec3(BinaryReader& reader)
 {
 	AnimationChannelVec3 m = {};
@@ -124,7 +125,7 @@ Imase::AnimationChannelVec3 Imase::ImdlLoader::DeserializeChannelVec3(BinaryRead
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iƒNƒH[ƒ^ƒjƒIƒ“‚Ì”z—ñj
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆã‚¯ã‚©ãƒ¼ã‚¿ãƒ‹ã‚ªãƒ³ã®é…åˆ—ï¼‰
 Imase::AnimationChannelQuat Imase::ImdlLoader::DeserializeChannelQuat(BinaryReader& reader)
 {
 	AnimationChannelQuat m = {};
@@ -136,7 +137,7 @@ Imase::AnimationChannelQuat Imase::ImdlLoader::DeserializeChannelQuat(BinaryRead
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iƒAƒjƒ[ƒVƒ‡ƒ“j
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ï¼‰
 Imase::AnimationClip Imase::ImdlLoader::DeserializeAnimationClip(BinaryReader& reader)
 {
 	AnimationClip m = {};
@@ -168,7 +169,7 @@ Imase::AnimationClip Imase::ImdlLoader::DeserializeAnimationClip(BinaryReader& r
 	return m;
 }
 
-// ƒ[ƒh‚·‚éŠÖ”iƒXƒLƒ“j
+// ãƒ­ãƒ¼ãƒ‰ã™ã‚‹é–¢æ•°ï¼ˆã‚¹ã‚­ãƒ³ï¼‰
 Imase::SkinInfo Imase::ImdlLoader::DeserializeSkinInfo(BinaryReader& reader)
 {
 	SkinInfo m = {};
@@ -180,7 +181,7 @@ Imase::SkinInfo Imase::ImdlLoader::DeserializeSkinInfo(BinaryReader& reader)
 	return m;
 }
 
-// Imdl‚Ìƒ[ƒhŠÖ”
+// Imdlã®ãƒ­ãƒ¼ãƒ‰é–¢æ•°
 HRESULT Imase::ImdlLoader::LoadImdl
 (
 	const std::wstring& filename,
@@ -195,14 +196,14 @@ HRESULT Imase::ImdlLoader::LoadImdl
 	std::vector<uint32_t>& indices
 )
 {
-	// ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³
 	std::ifstream ifs(filename, std::ios::binary);
 	if (!ifs.is_open())
 	{
 		return E_FAIL;
 	}
 
-	// ƒwƒbƒ_
+	// ãƒ˜ãƒƒãƒ€
 	FileHeader header{};
 	ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
 
@@ -211,17 +212,17 @@ HRESULT Imase::ImdlLoader::LoadImdl
 		return E_FAIL;
 	}
 
-	// ƒ`ƒƒƒ“ƒN“Ç‚İ‚İ
+	// ãƒãƒ£ãƒ³ã‚¯èª­ã¿è¾¼ã¿
 	for (uint32_t i = 0; i < header.chunkCount; ++i)
 	{
 		Imase::ChunkHeader ch{};
 		std::vector<uint8_t> buffer;
 
-		// ƒ`ƒFƒ“ƒNƒf[ƒ^“Ç‚İ‚İ
+		// ãƒã‚§ãƒ³ã‚¯ãƒ‡ãƒ¼ã‚¿èª­ã¿è¾¼ã¿
 		if (!Imase::ReadChunk(ifs, ch, buffer))
 			return E_FAIL;
 
-		// w’èƒTƒCƒY‚Ìƒf[ƒ^‚ğæ“¾‚·‚éƒŠ[ƒ_[
+		// æŒ‡å®šã‚µã‚¤ã‚ºã®ãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—ã™ã‚‹ãƒªãƒ¼ãƒ€ãƒ¼
 		BinaryReader reader(buffer);
 
 		switch (ch.type)
@@ -229,13 +230,13 @@ HRESULT Imase::ImdlLoader::LoadImdl
 
 		case CHUNK_TEXTURE:		// TextureType
 		{
-			// ƒeƒNƒXƒ`ƒƒ‚Ì”
+			// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®æ•°
 			uint32_t count = reader.ReadUInt32();
 			textures.resize(count);
 
 			for (uint32_t j = 0; j < count; j++)
 			{
-				// ƒeƒNƒXƒ`ƒƒ
+				// ãƒ†ã‚¯ã‚¹ãƒãƒ£
 				textures[j].type = static_cast<TextureType>(reader.ReadUInt32());
 				uint32_t size = reader.ReadUInt32();
 				textures[j].data.resize(size);

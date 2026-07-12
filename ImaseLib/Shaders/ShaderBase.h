@@ -1,7 +1,7 @@
-//--------------------------------------------------------------------------------------
+ï»¿//--------------------------------------------------------------------------------------
 // File: ShaderBase.h
 //
-// ƒVƒF[ƒ_[‚ÌŠî’êƒNƒ‰ƒX
+// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã®åŸºåº•ã‚¯ãƒ©ã‚¹
 //
 // Date: 2025.2.11
 // Author: Hideyasu Imase
@@ -25,23 +25,23 @@ namespace Imase
 
     struct UserConstantBuffer
     {
-        ID3D11Buffer* buffer;   // ’è”ƒoƒbƒtƒ@
-        UINT slot;              // ƒXƒƒbƒg
-        ShaderStage stage;      // g—pƒXƒe[ƒW
+        ID3D11Buffer* buffer;   // å®šæ•°ãƒãƒƒãƒ•ã‚¡
+        UINT slot;              // ã‚¹ãƒ­ãƒƒãƒˆ
+        ShaderStage stage;      // ä½¿ç”¨ã‚¹ãƒ†ãƒ¼ã‚¸
     };
 
     class ShaderBase
     {
     public:
 
-        // ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        // ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         ShaderBase(
             ID3D11Device* device,
             const wchar_t* vsFile,
             const wchar_t* psFile
         )
         {
-            // ’¸“_ƒVƒF[ƒ_[ì¬
+            // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ä½œæˆ
             std::vector<uint8_t> vsData = DX::ReadData(vsFile);
 
             DX::ThrowIfFailed(
@@ -52,10 +52,10 @@ namespace Imase
                     m_vertexShader.ReleaseAndGetAddressOf())
             );
 
-            // “ü—ÍƒŒƒCƒAƒEƒgì¬
+            // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆä½œæˆ
             CreateInputLayout(device, vsData);
 
-            // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[ì¬
+            // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ä½œæˆ
             std::vector<uint8_t> psData = DX::ReadData(psFile);
 
             DX::ThrowIfFailed(
@@ -67,10 +67,10 @@ namespace Imase
             );
         }
 
-        // ƒfƒXƒgƒ‰ƒNƒ^
+        // ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         virtual ~ShaderBase() = default;
 
-        // ƒVƒF[ƒ_[E“ü—ÍƒŒƒCƒAƒEƒg‚ğƒoƒCƒ“ƒh
+        // ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ»å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’ãƒã‚¤ãƒ³ãƒ‰
         virtual void Bind(ID3D11DeviceContext* context)
         {
             context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
@@ -80,7 +80,7 @@ namespace Imase
 
     protected:
 
-        // “ü—ÍƒŒƒCƒAƒEƒgì¬
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆä½œæˆ
         void CreateInputLayout(
             ID3D11Device* device,
             const std::vector<uint8_t>& vsData
@@ -113,16 +113,16 @@ namespace Imase
 
     public:
 
-        // UserCB‚ğ‚Â‚©H
+        // UserCBã‚’æŒã¤ã‹ï¼Ÿ
         virtual bool HasUserCB() const { return false; }
 
-        // UserCB‚Ìƒoƒbƒtƒ@‚ğæ“¾
+        // UserCBã®ãƒãƒƒãƒ•ã‚¡ã‚’å–å¾—
         virtual void GetUserCBs(std::vector<UserConstantBuffer>& out) const
         {
             out.clear();
         }
 
-        // UserCB‚ÌXV
+        // UserCBã®æ›´æ–°
         virtual void UpdateUserCBs(ID3D11DeviceContext* context)
         {
             UNREFERENCED_PARAMETER(context);
